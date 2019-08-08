@@ -11,3 +11,10 @@ In R, setwd("/path/to/ScreenBEAM2/")
 devtools::install(pkg='.', dependencies = T)
 devtools::install_deps(pkg = ".", dependencies = TRUE) ## Install package dependencies if needed.
 ```
+## Manual&Tutorial
+manual: ScreenBEAM2_0.1.0.pdf
+
+## Demo
+in demo_scripts/demo_pipeline.R 
+This is a demo for internal use only. 
+
