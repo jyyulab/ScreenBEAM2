@@ -1,8 +1,9 @@
 ###############################################################################
 # Author: Jiyang Yu, Xinge Wang
-# 2020.4.6
+# 2019.8.2
 # Utility functions
 ###############################################################################
+
 
 check.columns.lib<-function(lib){
   if(ncol(lib)<3){
@@ -94,7 +95,6 @@ get_raw_count<-function(analysis.par, save.data.every.run = T){
   if(save.data.every.run) save(count.table.list, file=paste0(analysis.par$out.dir.output.mapping.step3, "count_table_list.RData"))
 
   for(path in analysis.par$blat.path.list){
-    cat("\n")
     # Get sample name
     sample.name<-path2name(path, file.extent = ".txt")
     print(paste0("Collecting raw count table for sample ", sample.name))
@@ -183,7 +183,6 @@ get_raw_count<-function(analysis.par, save.data.every.run = T){
     print(paste0("Collecting count table for ", sample.name))
     RNAcount = aggregate(count ~ sgRNA + count, data = blat.clean, sum)
     names(RNAcount)<-c("sgRNA","count")
-
     zero.RNA<-setdiff(analysis.par$RNA.list, RNAcount$sgRNA)
     if(length(zero.RNA)!=0){
       zero.RNA.count<-rep(0, length(zero.RNA))
@@ -215,7 +214,6 @@ get_raw_count<-function(analysis.par, save.data.every.run = T){
     count.table.list$count.dist.df[[sample.name]]<-count.dist.df
     print(paste0("Done collecting raw counts for ", sample.name))
     if(save.data.every.run) save(count.table.list, file=paste0(analysis.par$out.dir.output.mapping.step3, "count_table_list.RData"))
-    print("\n")
   }
   return(count.table.list)
 }
@@ -235,7 +233,7 @@ write_count_table<-function(raw.count.list, analysis.par){
   print(paste0("count.csv is ready in folder ", analysis.par$out.dir.output.mapping.step3))
 
   # get the count.dist.table
-  count.dist.table<-rbindlist(raw.count.list$count.dist.df,fill = TRUE)
+  count.dist.table<-rbindlist(raw.count.list$count.dist.df)
   collect.all.list[["raw.count.dist"]]<-count.dist.table
   write.csv(count.dist.table, paste0(analysis.par$out.dir.output.mapping.step3, "count.dist.csv"), quote = F)
   print(paste0("count.dist.csv is ready in folder ", analysis.par$out.dir.output.mapping.step3))
@@ -295,15 +293,14 @@ generateEset<-function(m,n.mismatch=NULL,normalize=TRUE,normalize.total=1e6){
   if(!all(row.names(lib)%in%row.names(profiles)))
     stop('feature names are different between the lib and profile!\n')
 
-  profiles$shId<-NULL
-  tmp<-profiles[rownames(lib),]
-  tmp<-as.matrix(tmp) # deal with special case when ncol=1
-  rownames(tmp)<-rownames(lib)
-  colnames(tmp)<-colnames(profiles)
+
+  profiles<-profiles[row.names(lib),-1]
+  profiles<-profiles[,row.names(group)]
+
 
   eset<-new("ExpressionSet",phenoData = new("AnnotatedDataFrame",group),
             featureData=new("AnnotatedDataFrame",lib),annotation='',
-            exprs=tmp)
+            exprs=as.matrix(profiles))
 
   eset
 }
@@ -374,9 +371,6 @@ getCountByMismatch<-function(count.dist,n.mismatch,normalize=TRUE,normalize.tota
                                 ,...
     )
   dnew<-data.frame(shId=row.names(dnew),dnew)
-  if (ncol(dnew)==2){
-    colnames(dnew)[2]<-unique(count.dist$sampleName)
-  }#only one sample
 
   if(!is.null(annotation)){
     if(nrow(dnew)!=nrow(annotation))

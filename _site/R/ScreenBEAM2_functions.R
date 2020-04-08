@@ -257,50 +257,41 @@ ScreenBEAM.raw.count<-function(analysis.par){
   # In case one need to re-run, previous information in the analysis.par will be over-write
   if(sum(names(analysis.par)%in%names(reads.stat))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(reads.stat))]}
   analysis.par<-append(analysis.par, reads.stat)
-  #save on each step
 
   # Get basic statistics of library and remove repeated or substring sgRNAs
   lib.stat.list<-ScreenBEAM.check.lib(lib.csv.path)
   if(!is.null(lib.stat.list$removed.RNA)){
     # If there are duplicated sh/sgRNA in the library, we will create a new library csv file
     print("Update the library file and save the new library as csv file.")
-    write.csv(lib.stat.list$lib, file = paste0(analysis.par$out.dir.library,analysis.par$lib.name,"_new.csv"), row.names=FALSE, quote=FALSE)
+    write.csv(lib.stat.list$lib, file = paste0(analysis.par$out.dir.library,lib.name,"_new.csv", row.names=FALSE, quote=FALSE))
   }
   if(sum(names(analysis.par)%in%names(lib.stat.list))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(lib.stat.list))]}
-
   analysis.par<-append(analysis.par, lib.stat.list)
-  save(analysis.par,file= paste0(analysis.par$par.path, analysis.par$par.name))
 
   ####################### STEP 1: Create unique fasta #######################
   print("Step 1: create unique FASTA file from FASTQ files.")
-  #create fasta
   create_unique_readfile(fastq.path.list, out.path = analysis.par$out.dir.output.mapping.step1)
-
   fasta.path.list<-list.files(analysis.par$out.dir.output.mapping.step1, '*.fa', recursive=T, full.names = T)
-  analysis.par$fasta.path.list<-fasta.path.list
-
   sample.unique.reads.count<-c()
   for(path in fasta.path.list){
     sample.unique.reads.count<-c(sample.unique.reads.count, get_read_count(path, every.n.line = 2, file.extent = ".fa"))
   }
-
   # UPDATE analysis.par list
+  analysis.par$fasta.path.list<-fasta.path.list
   analysis.par$sample.unique.reads.count<-sample.unique.reads.count
-  save(analysis.par,file= paste0(analysis.par$par.path, analysis.par$par.name))
 
   ####################### STEP 2: Run blat mapping using unique reads fasta files and library fastat file #######################
   blat.stat<- run.blat(analysis.par, query = lib.fasta.path)
   # UPDATE analysis.par
   if(sum(names(analysis.par)%in%names(blat.stat))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(blat.stat))]}
   analysis.par<-append(analysis.par, blat.stat)
-  save(analysis.par,file= paste0(analysis.par$par.path, analysis.par$par.name))
 
   ####################### STEP 3: Collect count table #######################
-  raw.count.list<-get_raw_count(analysis.par, save.data.every.run = T) # save.data.every.run=T will save raw.count.list as `count.table.list` when complete every sample in /output/mapping/Step3
-  collect.countdf.list<-write_count_table(raw.count.list, analysis.par) # combine all the tables into one and write 3 files, count.csv; summary.csv; count.dist.csv
+  raw.count.list<-get_raw_count(analysis.par, save.data.every.run = T) # save.data.every.run=T will save raw.count.list when complete every sample in /output/mapping/Step3
+  collect.coutdf.list<-write_count_table(raw.count.list, analysis.par) # combine all the tables into one and write 3 files, count.csv; summary.csv; count.dist.csv
   # UPDATE analysis.par
-  if(sum(names(analysis.par)%in%names(collect.countdf.list))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(collect.countdf.list))]}
-  analysis.par<-append(analysis.par,collect.countdf.list)
+  if(sum(names(analysis.par)%in%names(collect.coutdf.list))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(collect.coutdf.list))]}
+  analysis.par<-append(analysis.par,collect.coutdf.list)
   return(analysis.par)
 }
 
@@ -378,7 +369,7 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
     pseudoCount<-ifelse(all(exprs(eset.sel)>0),0,1)
     if(pseudoCount!=0){print("There are 0 expression value, pesudoCount=1 will be added.")}
     exprs(eset.sel)<-log2(exprs(eset.sel)+pseudoCount)
-    logTransformed <- TRUE
+    logTransformed <- FALSE
   }
 
   # Use NetBID2 to compare
@@ -401,11 +392,11 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
     FC.df<-ddply(dat, .(probe), function(df){
       FC.val<-FC(df$response,df$treatment,logTransformed=do.log2,log.base=2,average.method='geometric',pseudoCount=pseudoCount)
     })
-    names(FC.df)<-c("probe","FC")
+    names(FC.df)<-c("probe","log2FC")
     avg.names<-paste0("Ave.",colnames(exprs(eset.sel)))
     exprs<-data.frame(exprs(eset.sel)[,1], exprs(eset.sel)[,2])
     colnames(exprs)<-avg.names
-    de<-data.frame(ID=FC.df$probe,log2FC= sign(FC.df$FC) * log2(abs(FC.df$FC)), exprs)
+    de<-data.frame(ID=FC.df$probe,log2FC=FC.df$log2FC, exprs)
   } else{
     print("More than 2 samples are comparing, call bid function.")
     phe_info<-pData(eset.sel)
@@ -413,7 +404,7 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
     G0<-rownames(phe_info)[which(phe_info$`group`==control.groupname)]
     comp <- c(rep(1, length.out = base::length(G1)), rep(0, length.out = base::length(G0)))
     de <- NetBID2::getDE.BID.2G(eset=eset.sel,G1=G1,G0=G0,G1_name=case.groupname,G0_name=control.groupname, pooling = pooling,
-                                logTransformed = logTransformed,family = family, method = estimation.method)
+                                logTransformed = FALSE,family = family, method = estimation.method)
   }
   return(de)
 }
