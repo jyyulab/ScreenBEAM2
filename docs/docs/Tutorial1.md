@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Tutorial
+title: Tutorial - Mapping
 nav_order: 3
 
 ---
@@ -42,7 +42,6 @@ You can go to your `analysis.par$out.dir.fastq` folder, then run command:
 ln -s file1
 ln -s file2
 ...
-
 ```
 or if you would like to link all fastq files in one folder, you can simply run:
 
@@ -69,7 +68,6 @@ Then you could move forward to mapping and collecting raw counts step, which cou
 
 
 
-
 ### Step1.2 Mapping and collecting raw counts
 
 First of all, please ensure `blat` was installed in your working environment, since we will be utilizing `blat` for library sequence mapping. (You can use blat version [here on conda](https://anaconda.org/bioconda/blat))
@@ -79,14 +77,15 @@ First of all, please ensure `blat` was installed in your working environment, si
 Next, we wil need to execute `ScreenBEAM.raw.count` function in ScreenBEAM2 R package. This function will help mapping your fastq files to library and collect raw counts by calling BLAT from R. This function will execute 1)get basic statististics, 2) create fasta from fastq and run blat, and 3) collect raw counts sequentially, so it may take a while for large sequencing data or whole genome libraries. Please try using more powerful computing platform if this is your case.
 
 ```R
-
 analysis.par<-ScreenBEAM.raw.count(analysis.par)
-
 # save your analysis results
 save(analysis.par, file = paste0(par.path, par.name))
 
 ```
 **NOTE: Also, some fastq files are ultra big, you may need to chop them into small fastq files in order to execute them successfully.**
+
+
+
 
 ### Step1.3 Mapping qualtiy control
 
@@ -102,38 +101,40 @@ If you would like to make adjustment on this rmarkdown file, you can edit it and
 
 ```R
 ScreenBEAM.mapping.QC(analysis.par, QC.Rmd.path = [new_path_to_your_rmd]) 
-
 ```
+
 This will output a QC report for your library mapping, here is  [example qc report](./mapping_6sample_QC.html), including several useful metrics for mapping rate, mismatch rate, count boxplots, etc.
+
+
 
 ### Step1.4 Read your mapping quality control
 
 Mapping quality control includes 6 differernt metrics to help you understand your library and mapping quality.
 
-####Library quality
+**Library quality**
 
-1. Library removed RNA due to duplicated or substring of other RNAs
+* Library removed RNA due to duplicated or substring of other RNAs
 This table shows all duplicated gRNAs(either perfect match or substring of other gRNA from the same gene). This will help you understand why some genes has less gRNAs than others.
 
-![](./figure/table_duplicated_gRNA.png)
+![](./figures/table_duplicated_gRNA.png)
 
-2. Total count of the gRNA number for each gene. This will help understand your library. Usually, a library contains hundreds or thousands of negative control gRNA (dummy gRNA) instead of 6(normally 6 gRNA for one gene). ScreenBEAM will take care of this unbalanced negative controls, and random sampling negative control guides to match other genes.
+* Total count of the gRNA number for each gene. This will help understand your library. Usually, a library contains hundreds or thousands of negative control gRNA (dummy gRNA) instead of 6(normally 6 gRNA for one gene). ScreenBEAM will take care of this unbalanced negative controls, and random sampling negative control guides to match other genes.
 
-![](./figure/1.numofgRNAdistribution.png)
+![](./figures/1.numofgRNAdistribution.png)
 
-####Mapping quality
-1. Mapping rate barplot. This barplot could help visualize how many reads in your samples' fastq files are successfully mapped(perfect match) to library sequence. This could not only help you visualize the data quality of your fastq files, but also give a hint of whether to allow mismatch in your raw data collection.
+**Mapping quality**
+* Mapping rate barplot. This barplot could help visualize how many reads in your samples' fastq files are successfully mapped(perfect match) to library sequence. This could not only help you visualize the data quality of your fastq files, but also give a hint of whether to allow mismatch in your raw data collection.
 
-![](./figure/2.mappingrate.png)
+![](./figures/2.mappingrate.png)
 
-2. Boxplot of raw count distribution in each sample. This plot could help your understand if all samples have similar raw count distribution. It could also give you a hint of how to choose your total number to perform normalization.
+* Boxplot of raw count distribution in each sample. This plot could help your understand if all samples have similar raw count distribution. It could also give you a hint of how to choose your total number to perform normalization.
 
-![](./figure/rawCountDistribution.png)
+![](./figures/rawCountDistribution.png)
 
-3. Proportion of number of mismatch in each sample. This plot could help you understand if all samples have similar mapping quality. 
+* Proportion of number of mismatch in each sample. This plot could help you understand if all samples have similar mapping quality. 
 
-![](./figure/nmismatch.png)
+![](./figures/nmismatch.png)
 
-4. Suggestion of number of mismatch to choose for your downstream analysis. This plot visualizes the percentages of different number of mismatch in each samples respectively. If there are two suggested number of mismatch, please use the smaller one.
+* Suggestion of number of mismatch to choose for your downstream analysis. This plot visualizes the percentages of different number of mismatch in each samples respectively. If there are two suggested number of mismatch, please use the smaller one.
 
-![](./figure/mismatchsuggestion.png)
+![](./figures/mismatchsuggestion.png)

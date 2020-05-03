@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Tutorial
+title: Tutorial - Cleanning
 nav_order: 4
 
 ---
@@ -18,15 +18,14 @@ ScreenBEAM2 is a R based tool which consists of three major parts for processing
 {:toc}
 
 ## Step2 Data annotation and data cleanning
-
 ### Step2.1 Create Metadata 
 First of all, please have your Metadata information collected in an excel file, and saved it to `analysis.par$out.dir.metadata`. Please note that, ID that could be matched to sampleID on fastq files is required, as well as proper group informations. A sample metadata file is shown as follows:
 
 **sampleID**|**group**|description|replicate|expName|
 | ------------- |:-------------:| -----:|-----:|-----:|
-F171| 0.25Hi| 0.25ug nacl-high | A | 2nd round screening in cells using library A
-F172| 0.25Lo|	 0.25ug nacl-low  | A | 2nd round screening in cells using library A
-F173| 0.25Hi| 0.25ug nacl-high | B | 2nd round screening in cells using library A
+|F171| 0.25Hi| 0.25ug nacl-high | A | 2nd round screening in cells using library A
+|F172| 0.25Lo| 0.25ug nacl-low  | A | 2nd round screening in cells using library A
+|F173| 0.25Hi| 0.25ug nacl-high | B | 2nd round screening in cells using library A
 
 
 ```R
@@ -93,9 +92,7 @@ Then, we could perform data normalization and store different normalization meth
 
 ```R
 normalize.total<-1e6
-
 m<-list(samples=meta,features=analysis.par$lib, count.dist=count.dist)
-
 save(m, file = paste0(par.path, "raw.list.Rdata"))
 ```
 

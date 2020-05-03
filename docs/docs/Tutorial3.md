@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Tutorial
-nav_order: 4
+title: Tutorial - DR
+nav_order: 5
 
 ---
 
@@ -63,8 +63,10 @@ if(length(de.gene.list)>1){
 }else{
   DR.GENE.DF<-de.gene.list[[1]]
 }
+```
 
-
+Clean up your results and generate result table.
+```R
 DR.GENE.DF.sel<-dplyr::select(DR.GENE.DF,
                       geneID,
                       starts_with('log2FC.'),
@@ -78,7 +80,11 @@ DR.GENE.DF.sel<-dplyr::select(DR.GENE.DF,
 
 write.xlsx(DR.GENE.DF.sel, paste0(analysis.par$out.dir, lib.name,".DR.GENE.xlsx"))
 DR.GENE.DF.sel$geneID<-as.character(DR.GENE.DF.sel$geneID)
+```
 
+
+If you have NetBID2 installed, you could use built-in volcano plot function to generate volcano plot for you DR analysis.
+```R
 # Take 1 comparison as example, to return the list of significant genes and draw a plot
 sig_gene <- draw.volcanoPlot(dat=DR.GENE.DF.sel, label_col = "geneID", logFC_col = names(DR.GENE.DF.sel)[2], Pv_col = names(DR.GENE.DF.sel)[5], logFC_thre = 2, Pv_thre = 1e-4, main = names(de.rna.list), show_label = T, label_cex = 1, pdf_file =  paste0(analysis.par$out.dir.output.DR, names(de.gene.list),"_GENE.pdf"))
 ```
