@@ -44,7 +44,7 @@ print(paste("Shuffle n.RNA cutoff is ",names(freq_perc_df)[which.max(freq_perc_d
 
 ```{r, echo=FALSE}
 df<-analysis.par$raw.summary
-df<-mutate(df,mapping.perc=100*n.matched/total,coverage.seq=round(n.matched/nrow(analysis.par$raw.count.table)))
+df<-plyr::mutate(df,mapping.perc=100*n.matched/total,coverage.seq=round(n.matched/nrow(analysis.par$raw.count.table)))
 kableExtra::kable(df,align = "c") %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
   kableExtra::scroll_box(width = "100%", height = "100%")
@@ -135,7 +135,7 @@ for(i in 1:sample.num){
     
   }
 }
-print(paste("Suggested n.mismatch to rescue the most reads is ", n.mismatch[cutoff]))
+print(paste("Suggested n.mismatch to rescue the most reads is ", min(n.mismatch[cutoff])))
 ```
 
 

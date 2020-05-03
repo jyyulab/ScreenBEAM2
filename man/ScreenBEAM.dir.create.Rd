@@ -2,17 +2,16 @@
 % Please edit documentation in R/ScreenBEAM2_functions.R
 \name{ScreenBEAM.dir.create}
 \alias{ScreenBEAM.dir.create}
-\title{Manipulation of Working Directories for ScreenBEAM2 analysis}
+\title{ScreenBEAM.dir.create}
 \usage{
-ScreenBEAM.dir.create(project_main_dir = NULL, lib_name = NULL,
-  DATE = TRUE)
+ScreenBEAM.dir.create(project_main_dir = NULL, lib_name = NULL, DATE = TRUE)
 }
 \arguments{
+\item{project_main_dir}{character, name or absolute path of the main working directory.}
+
 \item{lib_name}{character, name of the sh/sgRNA library. Each main working directory can contain multiple library sub-project folder.}
 
 \item{DATE}{logical, if TRUE, current date information will be added to the sub-project folder name. Default is TRUE.}
-
-\item{projecet_main_dir}{character, name or absolute path of the main working directory.}
 }
 \value{
 Return a list object, containing all the paths of the created folder.

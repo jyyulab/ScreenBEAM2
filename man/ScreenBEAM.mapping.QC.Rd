@@ -4,8 +4,10 @@
 \alias{ScreenBEAM.mapping.QC}
 \title{Create an HTML report to perform quality control of library, mapping status}
 \usage{
-ScreenBEAM.mapping.QC(analysis.par, QC.Rmd.path = system.file("Rmd",
-  "mapping_QC_report.Rmd", package = "ScreenBEAM2"))
+ScreenBEAM.mapping.QC(
+  analysis.par,
+  QC.Rmd.path = system.file("Rmd", "mapping_QC_report.Rmd", package = "ScreenBEAM2")
+)
 }
 \arguments{
 \item{analysis.par, }{the master list, containing unique reads files path, blat result files path.}

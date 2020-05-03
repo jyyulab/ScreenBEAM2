@@ -1,29 +1,42 @@
 ###############################################################################
-# Author: Jiyang Yu, Xinge Wang
-# 2019.8.2
+# Author: Jiyang Yu, Xinge Wang, Chenxi Qian
+# 2020.4.27
 # Main functions
 ###############################################################################
-#' @import Biobase arm MCMCglmm kableExtra RColorBrewer readxl plyr dplyr stringr readr data.table
-library(Biobase)
-library(plyr)
-library(dplyr)
-library(stringr)
-library(readxl)
-library(arm)
-library(MCMCglmm)
-library(kableExtra)
-library(RColorBrewer)
-library(readr)
-library(data.table)
-library(NetBID2)
+#' @import Biobase kableExtra readr data.table knitr graphics grDevices plyr
+#' @importFrom dplyr distinct
+#' @importFrom rmarkdown render pandoc_available html_document
+#' @importFrom graphics barplot
+#' @importFrom MCMCglmm MCMCglmm
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom arm bayesglm
+#' @importFrom lme4 glmer
+#' @importFrom utils write.csv read.csv read.table head tail
+#' @importFrom tidyr spread
+#' @importFrom methods new
+#' @importFrom stats IQR family AIC aggregate approx logLik as.dendrogram as.dist cutree density dist approxfun fisher.test gaussian glm hclust kmeans ks.test lm median model.matrix na.omit order.dendrogram p.adjust pchisq pnorm prcomp pt qnorm quantile sd splinefun rnorm
+#' @importFrom stringr str_match str_split_fixed
+
+# library(Biobase)
+# library(plyr)
+# library(dplyr)
+# library(stringr)
+# library(arm)
+# library(MCMCglmm)
+# library(kableExtra)
+# library(RColorBrewer)
+# library(readr)
+# library(data.table)
+# library(NetBID2)
 
 
-#' Manipulation of Working Directories for ScreenBEAM2 analysis
+########################
+#' @title ScreenBEAM.dir.create
 #'
-#' \code{ScreenBEAM.dir.create} is used to help users create an organized working directory for the Functional Genomics Screening Projects.
+#' @description \code{ScreenBEAM.dir.create} is used to help users create an organized working directory for the Functional Genomics Screening Projects.
 #' It creates a hierarchcial working directory and returns a list contains this directory information.
 #'
-#' @param projecet_main_dir character, name or absolute path of the main working directory.
+#' @param project_main_dir character, name or absolute path of the main working directory.
 #' @param lib_name character, name of the sh/sgRNA library. Each main working directory can contain multiple library sub-project folder.
 #' @param DATE logical, if TRUE, current date information will be added to the sub-project folder name. Default is TRUE.
 #'
@@ -244,7 +257,7 @@ ScreenBEAM.raw.count<-function(analysis.par){
     shorest.name.info<-which.min(sapply(lib.csv.path, nchar))
     shorest.name.id<-as.numeric(shorest.name.info)
     lib.csv.path<-lib.csv.path[shorest.name.id]
-    print(paste0("Automatic picking file ", lib.csv.path))
+    print(paste0("Automatically picking file ", lib.csv.path))
   }
   if(length(lib.csv.path)==0) stop("Please put library csv file in the right path. Type analysis.par$out.dir.library to check the path.")
   lib.fasta.path<-list.files(analysis.par$out.dir.library, '.fa', recursive = T, full.names = T)
@@ -333,7 +346,7 @@ ScreenBEAM.raw.count<-function(analysis.par){
 ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, control.groupname, case.groupname, gene.columnId=2,
                                filterLowCount=TRUE, filterBy = 'control', count.cutoff = 16, do.normalization=TRUE, total=1e6,
                                do.log2=TRUE, pooling ="full", family=gaussian, estimation.method='Bayesian'){
-  require(NetBID2)
+  #require(NetBID2)
   # Wrap the count table into eset, we don't perform any NORMALIZATION or LOG2 transform here
   eset<-generateEset.ScreenBEAM(input.file = input.file, control.samples = control.samples,
                                 case.samples = case.samples, control.groupname = control.groupname,
@@ -342,9 +355,9 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
 
   # Check case and sample group name existence
   if(!case.groupname%in%pData(eset)$group)
-    stop(paste('No group.case \'',group.case,'\' is defined in pData(eset)$group!\n',sep=''))
+    stop(paste('No group.case \'',case.groupname,'\' is defined in pData(eset)$group!\n',sep=''))
   if(!control.groupname%in%pData(eset)$group)
-    stop(paste('No group.ctrl \'',group.ctrl,'\' is defined in pData(eset)$group!\n',sep=''))
+    stop(paste('No group.ctrl \'',control.groupname,'\' is defined in pData(eset)$group!\n',sep=''))
 
   # filterout low count by count.cutoff
   if(filterLowCount){
@@ -444,7 +457,7 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
 #' @param sample.rna.time, integer, to remove unbalance number of sh/sgRNAs targetting the same gene. \code{rna.size} of sh/sgRNAs will be sampled, the sampling time.
 #' @param method, character, estimation model. Either "Bayesian" or "MLE". Default is "Bayesian".
 #' @param pooling, character, pooling method. Either "full" or "partial". Default is "partial".
-#'
+#' @param ... parameter pass to function DRAgeneLevel2
 #' @return Return a data frame containing all the gene-level meta-analysis statistical values. Including geneID, log2FC, z value, p value, FDR and so on.
 #'
 #' @export
@@ -497,7 +510,6 @@ ScreenBEAM.mapping.QC<-function(analysis.par, QC.Rmd.path=system.file("Rmd","map
 #' @export
 ScreenBEAM.trim.helper<-function(fastq.path, sample_num=10000, pdf.file){
   # This dependent on seqtk command
-  require(RColorBrewer)
   check.line.command<-paste0("wc -l <", fastq.path)
   total.line<-as.numeric((system(check.line.command, intern = TRUE)))
   fq.index<-seq(2,total.line-2,4)
@@ -537,7 +549,7 @@ ScreenBEAM.trim.helper<-function(fastq.path, sample_num=10000, pdf.file){
   fq.loc.perc.df<-apply(fq.loc.count.df, 1, function(x){x*100/sum(x,na.rm = T)})
   bar.max<-unlist(apply(fq.loc.perc.df, 2, max))
 
-  coul = brewer.pal(5, "Pastel2")
+  coul = RColorBrewer::brewer.pal(5, "Pastel2")
   pdf(pdf.file, width = 10, height =5)
   par(mar=rep(4,4))
   bar.plot<-barplot(fq.loc.perc.df, col=coul, border="white", xlab="Reads base index (5' to 3')",

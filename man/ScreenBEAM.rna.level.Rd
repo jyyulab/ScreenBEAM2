@@ -4,12 +4,23 @@
 \alias{ScreenBEAM.rna.level}
 \title{RNA level meta-analysis of high-throughput Functional Genomics Screening analysis}
 \usage{
-ScreenBEAM.rna.level(input.file, control.samples, case.samples,
-  control.groupname, case.groupname, gene.columnId = 2,
-  filterLowCount = TRUE, filterBy = "control", count.cutoff = 16,
-  do.normalization = TRUE, total = 1e+06, do.log2 = TRUE,
-  pooling = "full", family = gaussian,
-  estimation.method = "Bayesian")
+ScreenBEAM.rna.level(
+  input.file,
+  control.samples,
+  case.samples,
+  control.groupname,
+  case.groupname,
+  gene.columnId = 2,
+  filterLowCount = TRUE,
+  filterBy = "control",
+  count.cutoff = 16,
+  do.normalization = TRUE,
+  total = 1e+06,
+  do.log2 = TRUE,
+  pooling = "full",
+  family = gaussian,
+  estimation.method = "Bayesian"
+)
 }
 \arguments{
 \item{input.file, }{character, the file path of ".tsv" table with raw count number for each sample (column) and sh/sgRNA (row).}

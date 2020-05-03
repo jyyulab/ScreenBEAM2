@@ -3,9 +3,36 @@ Type: Package
 Title: A novel meta-analysis algorithm for functional genomics screens via Bayesian hierarchical modeling, Version 2
 Version: 0.1.0
 Author@R: person('Xinge', 'Wang', email = 'wang.xinge@outlook.com')
-Maintainer@R: person('Xinge', 'Wang', email = 'wang.xinge@outlook.com')
+Author: Xinge Wang,
+  Chenxi Qian
+Maintainer@R: person('Chenxi', 'Qian', email = 'tracytsien@hotmail.com')
+Maintainer: Chenxi Qian<tracytsien@hotmail.com>
 Description: ScreenBEAM2 is the upgraded version of ScreenBEAM1. It can perform functional genomics screening from FASTQ file. It is a trim-free, allowing number of mismatch, BLAT-depend pipeline. Downstream analysis uses Bayesian hierarchical modeling, removed bias caused by the unbalanced number of sh/sgRNA targeting the same gene.
-License: GPL(>=2)
+License: Apache License
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 6.1.1.9000
+RoxygenNote: 7.1.0
+Depends: 
+    R (>= 3.6.0),
+    Biobase (>= 2.38.0),
+    readr (>= 1.3.1),
+    kableExtra (>= 1.1.0),
+    knitr (>= 1.24),
+    data.table (>= 1.12.2),
+    graphics,
+    grDevices,
+    plyr (>= 1.8.4)
+Imports:
+    MCMCglmm (>= 2.29),
+    RColorBrewer (>= 1.1-2),
+    stats (>= 3.6.0),
+    stringr (>= 1.4.0), 
+    tidyr,
+    dplyr (>= 0.8.0),
+    methods,
+    lme4,
+    rmarkdown (>= 2.1),
+    arm (>= 1.10.1)
+Suggests:
+    NetBID2
+    

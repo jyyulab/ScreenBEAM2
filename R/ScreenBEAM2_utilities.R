@@ -1,6 +1,6 @@
 ###############################################################################
-# Author: Jiyang Yu, Xinge Wang
-# 2020.4.6
+# Author: Jiyang Yu, Xinge Wang, Chenxi Qian
+# 2020.4.27
 # Utility functions
 ###############################################################################
 
@@ -26,12 +26,9 @@ path2name<-function(path, file.extent){
 
 get_read_count<-function(path, every.n.line, file.extent){
   reads.path<-as.character(path)
-  num.reads<-strsplit(system(paste0("wc -l <", reads.path), intern = T), split = " ")[[1]][1]
+  lines<-system(paste0("wc -l <", reads.path), intern = T)
+  num.reads<-gsub(" ","",lines) # delete random space in after 'wc -l'
   num.reads<-as.numeric(num.reads)/every.n.line
-  if(num.reads%%1!=0){
-    print("ERROR: please check whether every.n.line is correct.")
-    break
-  }
   print(paste0(path2name(path,file.extent = ".fastq"), " has ", num.reads, " raw reads."))
   return(num.reads)
 }
@@ -46,7 +43,12 @@ get_reads_info<-function(reads.path, file.extent, every.n.line){
   for(path in reads.path){
     sample.names<-c(sample.names,path2name(path, file.extent=file.extent))
     print(paste0("Processing ", path2name(path, file.extent=file.extent)))
-    sample.reads.count<-c(sample.reads.count, get_read_count(path, every.n.line=every.n.line, file.extent=file.extent))
+    num.reads<-get_read_count(path, every.n.line=every.n.line, file.extent=file.extent)
+    if(num.reads%%1!=0){
+      print("ERROR: please check whether every.n.line is correct."); # remainder needs to be 0
+      break
+      }
+    sample.reads.count<-c(sample.reads.count, num.reads)
   }
   reads.stat$sample.names<-sample.names
   reads.stat$sample.reads.count<-sample.reads.count
@@ -88,7 +90,7 @@ run.blat<-function(analysis.par, query){
 }
 
 get_raw_count<-function(analysis.par, save.data.every.run = T){
-  require(data.table)
+  #require(data.table)
   # Create a list to store count tables
   count.table.list<-list()
   if(save.data.every.run) save(count.table.list, file=paste0(analysis.par$out.dir.output.mapping.step3, "count_table_list.RData"))
@@ -277,6 +279,15 @@ normalizeCountDist<-function(count.dist,total=1e6){
   count.dist[,-c(ncol(count.dist):(ncol(count.dist)-1))]
 }
 
+#' Generate Eset by number of mismatch and total normalize number
+#'
+#' @param m matrix
+#' @param n.mismatch number of mismatch
+#' @param normalize logical, default to TRUE
+#' @param normalize.total default to 1e6
+#'
+#' @return an eset with
+#' @export
 generateEset<-function(m,n.mismatch=NULL,normalize=TRUE,normalize.total=1e6){
 
   if(is.null(n.mismatch)){n.mismatch<-as.integer(gsub('X','',tail(names(m$count.dist),1)))}
@@ -308,6 +319,15 @@ generateEset<-function(m,n.mismatch=NULL,normalize=TRUE,normalize.total=1e6){
   eset
 }
 
+#' normalizeMiseqProfile
+#'
+#' @param d data frame
+#' @param total total normalize number
+#' @param pseudoCount pseudo number to add, for eliminating zeros
+#' @param undertermined.col default to 'Undetermined'
+#'
+#' @return
+#' @export
 normalizeMiseqProfile<-function(d,total=NULL,pseudoCount=1,undertermined.col='Undetermined'){
   #special case of Undetermined, total number of Undetermined proporitial its percentage
   if(!is.null(undertermined.col)){
@@ -345,6 +365,14 @@ normalizeMiseqProfile<-function(d,total=NULL,pseudoCount=1,undertermined.col='Un
 
 }
 
+#' Normalization function
+#'
+#' @param d
+#' @param total
+#' @param pseudoCount
+#'
+#' @return
+#' @export
 normalize.scale<-function(d,total=NULL,pseudoCount=1){
 
   if(!is.data.frame(d)) {d<-data.frame(d)}
@@ -362,6 +390,18 @@ normalize.scale<-function(d,total=NULL,pseudoCount=1){
   return(d)
 }
 
+#' Get count matrix by number of mismatch
+#'
+#' @param count.dist count distribution matrix, originally outputed in count.dist.csv from ScreenBEAM.raw.count
+#' @param n.mismatch numerical,number of mismatch
+#' @param normalize logical
+#' @param normalize.total total normalize number, default to 1e6
+#' @param annotation NULL
+#' @param undertermined.col NULL
+#' @param ... parameters pass to normalizeMiseqProfile
+#'
+#' @return
+#' @export
 getCountByMismatch<-function(count.dist,n.mismatch,normalize=TRUE,normalize.total=1e6,annotation=NULL,undertermined.col=NULL,...){
 
   col.sel<-paste('X',0:n.mismatch,sep='')
@@ -388,6 +428,15 @@ getCountByMismatch<-function(count.dist,n.mismatch,normalize=TRUE,normalize.tota
   dnew
 }
 
+#' saveCountEset: Save count data into different expression set with multiple number of mismatch value
+#'
+#' @param m matrix
+#' @param save.path path to save your expression sets
+#' @param total total normalization number
+#' @param n.mismatch numeric, adjust according to mapping qc report
+#'
+#' @return Four expression sets
+#' @export
 saveCountEset<-function(m,save.path,total=1e6, n.mismatch=2){
 
   cat('count.maxmm.raw.eset is saved...\n')
@@ -413,7 +462,7 @@ saveCountEset<-function(m,save.path,total=1e6, n.mismatch=2){
 
 generateEset.ScreenBEAM<-function(input.file,control.samples,case.samples,control.groupname='control',case.groupname='treatment',gene.columnId=2){
   # Create eset by only picking control and case columns
-  require(Biobase)
+  #require(Biobase)
   # Read the tsv table
   d<-read.table(input.file,sep='\t',header=T, check.names = F)
   # Check if sample names are duplicated

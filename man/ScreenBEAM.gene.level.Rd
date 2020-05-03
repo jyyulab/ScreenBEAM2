@@ -4,13 +4,28 @@
 \alias{ScreenBEAM.gene.level}
 \title{GENE level meta-analysis of high-throughput Functional Genomics Screening analysis}
 \usage{
-ScreenBEAM.gene.level(input.file, control.samples, case.samples,
-  control.groupname = "control", case.groupname = "treatment",
-  gene.columnId = 2, data.type = c("microarray", "NGS"),
-  do.normalization = TRUE, total = 1e+06, filterLowCount = FALSE,
-  filterBy = "control", count.cutoff = 4, nitt = 15000,
-  burnin = 5000, thin = 10, rna.size = 6, sample.rna.time = 100,
-  method = "Bayesian", pooling = "partial", ...)
+ScreenBEAM.gene.level(
+  input.file,
+  control.samples,
+  case.samples,
+  control.groupname = "control",
+  case.groupname = "treatment",
+  gene.columnId = 2,
+  data.type = c("microarray", "NGS"),
+  do.normalization = TRUE,
+  total = 1e+06,
+  filterLowCount = FALSE,
+  filterBy = "control",
+  count.cutoff = 4,
+  nitt = 15000,
+  burnin = 5000,
+  thin = 10,
+  rna.size = 6,
+  sample.rna.time = 100,
+  method = "Bayesian",
+  pooling = "partial",
+  ...
+)
 }
 \arguments{
 \item{input.file, }{character, the file path of ".tsv" table with raw count number for each sample (column) and sh/sgRNA (row).}
@@ -51,6 +66,8 @@ Default is TRUE.}
 \item{method, }{character, estimation model. Either "Bayesian" or "MLE". Default is "Bayesian".}
 
 \item{pooling, }{character, pooling method. Either "full" or "partial". Default is "partial".}
+
+\item{...}{parameter pass to function DRAgeneLevel2}
 }
 \value{
 Return a data frame containing all the gene-level meta-analysis statistical values. Including geneID, log2FC, z value, p value, FDR and so on.
