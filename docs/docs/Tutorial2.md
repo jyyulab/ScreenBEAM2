@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Tutorial - Cleanning
-nav_order: 4
+title: 2.Cleanning
+parent: Guided tutorials
+nav_order: 5
 
 ---
 

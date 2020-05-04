@@ -1,6 +1,7 @@
 ---
 layout: default
-title: Tutorial - DR
+title: 3.DR
+parent: Guided tutorials
 nav_order: 5
 
 ---
@@ -19,7 +20,7 @@ ScreenBEAM2 is a R based tool which consists of three major parts for processing
 {:toc}
 
 ## Step3.Perform pairwise comparisons on Gene level
-First, define your comparison pairs and make sure all group names are correct. Here as sample analysis, we used a 
+First, define your comparison pairs and make sure all group names are correct. Here as sample analysis, we used the combination of all unique groups as our comparison. 
 ```R
 unique.group<-unique(m$samples$group)
 compare.pairs<-combn(unique.group,2)

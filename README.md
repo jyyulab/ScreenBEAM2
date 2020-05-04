@@ -13,8 +13,9 @@ devtools::install_deps(pkg = ".", dependencies = TRUE) ## Install package depend
 ```
 ## Manual&Tutorial
 manual: ScreenBEAM2_0.1.0.pdf
+tutorial: https://jyyulab.github.io/ScreenBEAM2/
 
 ## Demo
-in demo_scripts/demo_pipeline.R 
-This is a demo for internal use only. 
+in inst/demo_scripts/demo_pipeline.R 
+This is a demo for internal use only!
 

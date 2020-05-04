@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Tutorial - Mapping
-nav_order: 3
+title: 1.Mapping
+parent: Guided tutorials
+nav_order: 4
 
 ---
 
