@@ -132,7 +132,7 @@ This table shows all duplicated gRNAs(either perfect match or substring of other
 
 ![](./figures/rawCountDistribution.png)
 
-* Proportion of number of mismatch in each sample. This plot could help you understand if all samples have similar mapping quality. 
+* Proportion of number of mismatch within the mapped reads in each sample. This plot could help you understand if all samples have similar mapping quality. 
 
 ![](./figures/nmismatch.png)
 
