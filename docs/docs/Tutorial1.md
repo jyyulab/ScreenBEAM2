@@ -124,7 +124,7 @@ This table shows all duplicated gRNAs(either perfect match or substring of other
 ![](./figures/1.numofgRNAdistribution.png)
 
 **Mapping quality**
-* Mapping rate barplot. This barplot could help visualize how many reads in your samples' fastq files are successfully mapped(perfect match) to library sequence. This could not only help you visualize the data quality of your fastq files, but also give a hint of whether to allow mismatch in your raw data collection.
+* Mapping rate barplot. This barplot could help visualize how many reads in your samples' fastq files are successfully mapped to library sequence. This could not only help you visualize the data quality of your fastq files, but also give a hint of whether to allow mismatch in your raw data collection.
 
 ![](./figures/2.mappingrate.png)
 
