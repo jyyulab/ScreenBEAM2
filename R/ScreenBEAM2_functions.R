@@ -1,6 +1,6 @@
 ###############################################################################
-# Author: Jiyang Yu, Xinge Wang, Chenxi Qian
-# 2020.4.27
+# Author: Xinge Wang, Chenxi Qian, Xinran Dong, Jiyang Yu
+# 2024.06.03
 # Main functions
 ###############################################################################
 #' @import Biobase kableExtra readr data.table knitr graphics grDevices plyr
@@ -39,6 +39,8 @@
 #' @param project_main_dir character, name or absolute path of the main working directory.
 #' @param lib_name character, name of the sh/sgRNA library. Each main working directory can contain multiple library sub-project folder.
 #' @param DATE logical, if TRUE, current date information will be added to the sub-project folder name. Default is TRUE.
+#' @param library_file character, path for the library file. 
+#' @param metadata_file character, path for the metadata file. (sampleID,group,replicate,sampleLabel,fastqFile)
 #'
 #' @details This function needs users to define the main working directory and the library’s name. It creates
 #' a main working directory with a subdirectory of the project(each library is a project). It also automatically creates 4
@@ -53,12 +55,12 @@
 #' This list is an essential for ScreenBEAM2 analysis, all the important intermediate data generated later will be wrapped inside.
 #'
 #' QC/ is used to store quality control analysis of the mapping result. Including library check and mapping statistics.
-#'
 #' DR/ is used to store the Bayesian hierarchical meta analysis result.
 #'
 #' @return Return a list object, containing all the paths of the created folder.
 #' @export
-ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRUE){
+ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRUE,
+							library_file = NULL, metadata_file = NULL){
   if(exists('analysis.par')==TRUE){message('analysis.par is occupied in the current session,please manually run: rm(analysis.par) and re-try, otherwise will not change !');
     return(analysis.par)}
   if(is.null(project_main_dir)==TRUE){message('project_main_dir required, please input and re-try!');return(FALSE)}
@@ -80,9 +82,41 @@ ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRU
   if (!dir.exists(analysis.par$out.dir.library)) {
     dir.create(analysis.par$out.dir.library, recursive = TRUE) ## directory for shRNA or sgRNA library files
   }
+  if(is.null(library_file) == FALSE & file.exists(library_file) == TRUE){
+    out_library_file <- sprintf('%s/library.csv',analysis.par$out.dir.library) ### sherry: copy file
+    file.copy(library_file, out_library_file, overwrite = TRUE)
+    message(sprintf('Check %s for library file',out_library_file))
+    library_dat <- read.csv(out_library_file)
+    library_out <- apply(library_dat,1,function(x)sprintf('>%s\n%s',x[1],x[2]))
+    write.table(library_out,file = sprintf('%s/library.fa',analysis.par$out.dir.library),row.names=F,col.names=F,quote=F)
+  }
   analysis.par$out.dir.metadata <- paste0(analysis.par$out.dir, '/metadata/')
   if (!dir.exists(analysis.par$out.dir.metadata)) {
     dir.create(analysis.par$out.dir.metadata, recursive = TRUE) ## directory for meta data related files
+  }
+  if(is.null(metadata_file) == FALSE & file.exists(metadata_file) == TRUE){
+    out_metadata_file <- sprintf('%s/metadata.csv',analysis.par$out.dir.metadata) ### sherry: copy file
+    file.copy(metadata_file, out_metadata_file, overwrite = TRUE)
+    message(sprintf('Check %s for metadata file',out_metadata_file))
+    metadata_dat <- read.csv(out_metadata_file) #sampleID,group,replicate,sampleLabel,fastqFile 
+  	### sherry: cp file 
+    metadata_dat$current_fastqFile <- c()
+    for(i in 1:nrow(metadata_dat)){
+		old_file <- metadata_dat[i,'fastqFile']
+		if(min(table(metadata_dat$sampleLabel)) == 1){
+			new_file <- sprintf('%s.fastq',metadata_dat[i,'sampleLabel'])
+			new_file <- sprintf('%s/%s',analysis.par$out.dir.fastq,new_file)
+			if(grepl('gz$',old_file)){
+				R.utils::gunzip(old_file,new_file)
+			}else{
+				file.copy(old_file,new_file)	
+			}
+		}else{
+			message(sprintf('sampleLabel not unique, do not automatically prepare fastq file to %s',analysis.par$out.dir.fastq))
+		}
+		metadata_dat$current_fastqFile[i] <- new_file
+    }
+    analysis.par$metadata <- metadata_dat
   }
   analysis.par$out.dir.output <- paste0(analysis.par$out.dir, '/output/')
   if (!dir.exists(analysis.par$out.dir.output)) {
@@ -113,6 +147,8 @@ ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRU
   if (!dir.exists(analysis.par$out.dir.output.DR)) {
     dir.create(analysis.par$out.dir.output.DR, recursive = TRUE) ## directory for all outputfiles
   }
+  ## set path to save RData
+  analysis.par$RData.path <- sprintf('%s/%s',analysis.par$out.dir,paste0("analysis_par_",analysis.par$lib.name, ".RData"))
   message(sprintf('Analysis space created, please check %s',analysis.par$out.dir))
   return(analysis.par)
 }
@@ -192,7 +228,7 @@ ScreenBEAM.check.lib<-function(lib.path){
       # check if they are substring to the longer RNA
       if(nchar(pattern[i])<=mode.len){
         # if pattern is shorter, then keep the longer one
-        match.id<-which(!is.na(str_match(lib[,2], pattern[i]))) #remove.id is the
+        match.id<-which(!is.na(stringr::str_match(lib[,2], pattern[i]))) #remove.id is the
         if(length(match.id)<=1) next
         match.id<-match.id[!match.id %in% pattern.id[i]]
         for(id in match.id){
@@ -201,7 +237,7 @@ ScreenBEAM.check.lib<-function(lib.path){
           substring.df<-rbind(substring.df,c(unname(unlist(lib[pattern.id[i],])),"Substring"))
         }
       } else{
-        match.id<-which(!is.na(str_match(pattern[i], lib[,2])))
+        match.id<-which(!is.na(stringr::str_match(pattern[i], lib[,2])))
         match.id<-match.id[!match.id %in% pattern.id[i]]
         for(id in match.id){
           p.id<-as.integer(pattern.id[i])
@@ -245,24 +281,16 @@ ScreenBEAM.check.lib<-function(lib.path){
 #' @export
 ScreenBEAM.raw.count<-function(analysis.par){
   ##### This function can be run directly or step by step
-
   # Check if there is fastq files ready
-  fastq.path.list<-list.files(analysis.par$out.dir.fastq, '*.fastq', recursive=T, full.names = T)
-  if(length(fastq.path.list)==0) stop("Please put unzipped fastq files in the right path. Type analysis.par$out.dir.fastq to check the path.")
-  # Check if library fasta file is ready
-  lib.csv.path<-list.files(analysis.par$out.dir.library, '.csv', recursive = T, full.names = T)
-  if(length(lib.csv.path)>1){
-    # If multiple csv file are in the folder, pick the one with the shortest name
-    print(paste0("Multiple csv library files in the folder ", analysis.par$out.dir.library))
-    shorest.name.info<-which.min(sapply(lib.csv.path, nchar))
-    shorest.name.id<-as.numeric(shorest.name.info)
-    lib.csv.path<-lib.csv.path[shorest.name.id]
-    print(paste0("Automatically picking file ", lib.csv.path))
+  #fastq.path.list<-list.files(analysis.par$out.dir.fastq, '*.fastq', recursive=T, full.names = T)
+  fastq.path.list <- analysis.par$metadata$current_fastqFile # sherry
+  if(length(fastq.path.list)==0) stop("Please put fastq file in the path.")
+  # Check if library fasta file is ready (sherry)
+  lib.csv.path <- sprintf('%s/library.csv',analysis.par$out.dir.library)
+  lib.fasta.path <- sprintf('%s/library.fa',analysis.par$out.dir.library)
+  if(file.exists(lib.csv.path) == FALSE | file.exists(lib.fasta.path) == FALSE){
+     stop(sprintf('please check the existence of %s and %s',lib.csv.path,lib.fasta.path))
   }
-  if(length(lib.csv.path)==0) stop("Please put library csv file in the right path. Type analysis.par$out.dir.library to check the path.")
-  lib.fasta.path<-list.files(analysis.par$out.dir.library, '.fa', recursive = T, full.names = T)
-  if(length(lib.fasta.path)==0) stop("Please create fasta file for your library.")
-
   ####################### STEP 0: Get statistics about FASTQ files and samples #######################
   # Get basic statistics for FASTQ reads
   print("Step 0: get some basic statistic about the samples FASTQ reads.")
@@ -279,10 +307,10 @@ ScreenBEAM.raw.count<-function(analysis.par){
     print("Update the library file and save the new library as csv file.")
     write.csv(lib.stat.list$lib, file = paste0(analysis.par$out.dir.library,analysis.par$lib.name,"_new.csv"), row.names=FALSE, quote=FALSE)
   }
-  if(sum(names(analysis.par)%in%names(lib.stat.list))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(lib.stat.list))]}
+  if(sum(names(analysis.par) %in% names(lib.stat.list))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(lib.stat.list))]}
 
   analysis.par<-append(analysis.par, lib.stat.list)
-  save(analysis.par,file= paste0(analysis.par$par.path, analysis.par$par.name))
+  save(analysis.par,file=analysis.par$RData.path)
 
   ####################### STEP 1: Create unique fasta #######################
   print("Step 1: create unique FASTA file from FASTQ files.")
@@ -299,14 +327,14 @@ ScreenBEAM.raw.count<-function(analysis.par){
 
   # UPDATE analysis.par list
   analysis.par$sample.unique.reads.count<-sample.unique.reads.count
-  save(analysis.par,file= paste0(analysis.par$par.path, analysis.par$par.name))
+  save(analysis.par,file=analysis.par$RData.path)
 
   ####################### STEP 2: Run blat mapping using unique reads fasta files and library fastat file #######################
   blat.stat<- run.blat(analysis.par, query = lib.fasta.path)
   # UPDATE analysis.par
   if(sum(names(analysis.par)%in%names(blat.stat))!=0){analysis.par<-analysis.par[-which(names(analysis.par)%in%names(blat.stat))]}
   analysis.par<-append(analysis.par, blat.stat)
-  save(analysis.par,file= paste0(analysis.par$par.path, analysis.par$par.name))
+  save(analysis.par,file=analysis.par$RData.path)
 
   ####################### STEP 3: Collect count table #######################
   raw.count.list<-get_raw_count(analysis.par, save.data.every.run = T) # save.data.every.run=T will save raw.count.list as `count.table.list` when complete every sample in /output/mapping/Step3

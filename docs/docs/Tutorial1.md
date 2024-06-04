@@ -10,6 +10,8 @@ nav_order: 4
 {:.no_toc}
 ScreenBEAM2 is a R based tool which consists of three major parts for processing steps: 1. mapping long read sequence to short read libraries, 2. Quality control, data cleanning and data preprocessing for mapped raw counts data; 3. Differential representative analysis on gene level or shRNA level. 
 
+The demo dataset could be found in `screenBEAM2/dataset/2013NBT/`, with `library.csv`, `Metadata.csv` and six fastq files.
+
 **This is the first part of the whole tutorial, which is focused on mapping your long read fastq file with short read libraries.**
 
 
@@ -26,32 +28,13 @@ First of all, define your project name and create a project R object. This could
 **note: Project object should be library based! One library per run of ScreenBEAM2!**
 If you have multiple libraries mapped at the same time, you have to open different R project for different library runs. Our only allows one library at a time. 
 ```R
-lib.name<-'[your_library_name_+_project_name]'
-analysis.par<-ScreenBEAM.dir.create(project_main_dir = './', lib_name = lib.name, DATE = T)
-
-analysis.par$par.path<-analysis.par$out.dir 
-analysis.par$par.name<-paste0("analysis_par_",lib.name, ".RData")
-
-save.image(file = paste0(analysis.par$par.path, analysis.par$par.name)) #save your image
+lib.name <- 'mouseESC' # e.g [your_library_name_+_project_name]
+library_csv <- 'library.csv'
+Metadata_csv <- 'Metadata.csv'
+analysis.par<-ScreenBEAM.dir.create(project_main_dir = './', lib_name = lib.name, DATE = T, library_file = library_csv, metadata_file = Metadata_csv)
 ```
 
-Next, soft link your fastq file to `analysis.par$out.dir.fastq` folder. This step is **ESSENTIAL**, please **DON'T** move files directly, in case of losing your data. Before you soft link data files, we suggested double check your fastq files with your meta data, to make sure all fastq files were mapped to your designated library.
-
-You can go to your `analysis.par$out.dir.fastq` folder, then run command:
-
-```Shell
-ln -s file1
-ln -s file2
-...
-```
-or if you would like to link all fastq files in one folder, you can simply run:
-
-```Shell
-ln -s [your folder path]/*_R1_001.fastq .
-
-```
-
-Then put your library csv file in the `analysis.par$out.dir.library` folder. The 1st column must be gRNA name and 2nd column must be sequence. An example library file would be like:
+The `library.csv` file would be like:
 
 id | seq | gene|
 | ------------- |:-------------:| -----:|
@@ -59,15 +42,18 @@ TargetMouse.sg1| AAAAAGAAATGCTCTACCAG | Ypf1
 TargetMouse.sg2| AAAACACATACGTCTGTGAG | Cwc12
 TargetMouse.sg3| AAAACCGAGCACCATCAATG | Lck2
 
-Then go to `analysis.par$out.dir.library` folder and run following command to create fasta file for library.
+The `Metadata.csv` file would be like:
 
-```Shell
-awk FNR-1 your_library.csv | awk -F "," '{print ">"$1"\n"$2}' > your_library.fa" 
-```
+sampleID|group|replicates|sampleLabel|fastqFile
+|:-------:|:----:|:---------:|:----------:|:-------:|
+F171|Hi|A|Hi_A|screenBEAM2/dataset/2013NBT/1382255_F171_S3_L003_R1_001.fastq.gz
+F172|Lo|A|Lo_A|/home/dongxinran/project/screenBEAM2/dataset/2013NBT/1382256_F172_S4_L003_R1_001.fastq.gz
+F173|Hi|B|Hi_B|/home/dongxinran/project/screenBEAM2/dataset/2013NBT/1382257_F173_S5_L003_R1_001.fastq.gz
+F174|Lo|B|Lo_B|/home/dongxinran/project/screenBEAM2/dataset/2013NBT/1382258_F174_S6_L003_R1_001.fastq.gz
+F175|Hi|C|Hi_C|/home/dongxinran/project/screenBEAM2/dataset/2013NBT/1382259_F175_S7_L003_R1_001.fastq.gz
+F176|Lo|C|Lo_C|/home/dongxinran/project/screenBEAM2/dataset/2013NBT/1382260_F176_S8_L003_R1_001.fastq.gz
 
-Then you could move forward to mapping and collecting raw counts step, which could be executed either on a high performance computing platform or your local machine.
-
-
+Here, `fastqFile` better show the full path.
 
 ### Step1.2 Mapping and collecting raw counts
 
@@ -79,14 +65,8 @@ Next, we wil need to execute `ScreenBEAM.raw.count` function in ScreenBEAM2 R pa
 
 ```R
 analysis.par<-ScreenBEAM.raw.count(analysis.par)
-# save your analysis results
-save(analysis.par, file = paste0(par.path, par.name))
-
 ```
 **NOTE: Also, some fastq files are ultra big, you may need to chop them into small fastq files in order to execute them successfully.**
-
-
-
 
 ### Step1.3 Mapping qualtiy control
 
@@ -105,7 +85,6 @@ ScreenBEAM.mapping.QC(analysis.par, QC.Rmd.path = [new_path_to_your_rmd])
 ```
 
 This will output a QC report for your library mapping, here is  [example qc report](./mapping_6sample_QC.html), including several useful metrics for mapping rate, mismatch rate, count boxplots, etc.
-
 
 
 ### Step1.4 Read your mapping quality control
