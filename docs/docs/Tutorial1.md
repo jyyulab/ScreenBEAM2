@@ -42,7 +42,7 @@ TargetMouse.sg1| AAAAAGAAATGCTCTACCAG | Ypf1
 TargetMouse.sg2| AAAACACATACGTCTGTGAG | Cwc12
 TargetMouse.sg3| AAAACCGAGCACCATCAATG | Lck2
 
-The `Metadata.csv` file would be like:
+The `Metadata.csv` file would be like, and the sampleLabel should be unique.
 
 sampleID|group|replicates|sampleLabel|fastqFile
 |:-------:|:----:|:---------:|:----------:|:-------:|

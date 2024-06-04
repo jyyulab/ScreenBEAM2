@@ -428,6 +428,56 @@ getCountByMismatch<-function(count.dist,n.mismatch,normalize=TRUE,normalize.tota
   dnew
 }
 
+#' ScreenBEAM.createEset: create eSet after mapping steps, including combining mapping info to your metadata and data normalization
+#' @param analysis.par
+#' @param normalize.total, integer
+#' @param n.mismatch, integer 
+#' @return
+#' @export
+
+ScreenBEAM.createEset <- function(analysis.par, normalize.total = 1e6, n.mismatch = 9){
+    ##
+    meta.data <- analysis.par$metadata
+    mapping<-analysis.par$raw.summary
+    #calculate mapping rate and sequencing coverages
+    mapping<-mutate(mapping,mappingRate=n.matched/total,coverage.seq=round(n.matched/nrow(analysis.par$raw.count.table)))
+    head(mapping)
+    ##
+    rownames(meta.data) <- meta.data$sampleLabel
+    rownames(mapping) <- mapping$sample
+    meta.data <- cbind(meta.data, mapping[mapping$sample,,drop=F])
+    ##
+    unlink(file.path(analysis.par$out.dir.output.mapping,'mapping.summary.xlsx'))
+    write.xlsx(meta.data,file=file.path(analysis.par$out.dir.output.mapping,'mapping.summary.xlsx'))
+    message(sprintf('check %s for mapping summary',file.path(analysis.par$out.dir.output.mapping,'mapping.summary.xlsx')))
+    ##
+    count.dist <- as.data.frame(analysis.par$raw.count.dist)
+    colnames(count.dist)[2] <- 'sampleName'
+    meta.data$sampleName <- meta.data$sample
+    feature.data <- analysis.par$lib
+    m <- list(samples = meta.data, features = feature.data, count.dist = count.dist)
+    fp <- saveCountEset(m,
+        save.path=analysis.par$out.dir.output.mapping,
+        total = normalize.total, n.mismatch = n.mismatch)
+	fp1 <- paste0(analysis.par$out.dir.output.DR,sprintf("%smm_normalized.tsv",n.mismatch))
+    if('norm.path' %in% names(analysis.par)){
+        analysis.par$norm.path <- rbind(analysis.par$norm.path,c(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1))
+    }else{
+        analysis.par$norm.path <- data.frame(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1)
+    }
+    analysis.par$metadata <- meta.data
+	##
+	first.2.column<-data.frame(RNAid=analysis.par$lib$id, geneid=analysis.par$lib$gene)
+	count.column<-as.data.frame(exprs(count.Nmm.normalized.eset))
+	count.column$RNAid<-rownames(count.column)
+	final.table<-merge(first.2.column, count.column, by="RNAid")
+	colnames(final.table)<-c("rnaID","geneID", paste(meta$group,meta$replicate, sep = "_"))
+	write.table(final.table, file = fp1, quote = F, row.names = F, sep='\t')
+	##
+    return(analysis.par)
+}
+
+
 #' saveCountEset: Save count data into different expression set with multiple number of mismatch value
 #'
 #' @param m matrix
@@ -456,8 +506,9 @@ saveCountEset<-function(m,save.path,total=1e6, n.mismatch=2){
   norm.name<-paste0(prefix,".normalized.eset")
   cat(paste(norm.name," is saved...\n"))
   count.Nmm.normalized.eset<-generateEset(m,n.mismatch=n.mismatch,normalize=TRUE,normalize.total=total)
-  save(count.Nmm.normalized.eset,file=file.path(save.path,paste(norm.name,".",total/1e6,'M.eset',sep='')))
-
+  filepath <- file.path(save.path,paste(norm.name,".",total/1e6,'M.eset',sep=''))
+  save(count.Nmm.normalized.eset,file=filepath)
+  return(filepath)
 }
 
 generateEset.ScreenBEAM<-function(input.file,control.samples,case.samples,control.groupname='control',case.groupname='treatment',gene.columnId=2){

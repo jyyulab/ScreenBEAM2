@@ -112,7 +112,7 @@ ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRU
 				file.copy(old_file,new_file)	
 			}
 		}else{
-			message(sprintf('sampleLabel not unique, do not automatically prepare fastq file to %s',analysis.par$out.dir.fastq))
+			stop('sampleLabel not unique, please modify and re-run!')
 		}
 		metadata_dat$current_fastqFile[i] <- new_file
     }
