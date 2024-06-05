@@ -461,9 +461,9 @@ ScreenBEAM.createEset <- function(analysis.par, normalize.total = 1e6, n.mismatc
         total = normalize.total, n.mismatch = n.mismatch)
 	fp1 <- paste0(analysis.par$out.dir.output.DR,sprintf("%smm_normalized.tsv",n.mismatch))
     if('norm.path' %in% names(analysis.par)){
-        analysis.par$norm.path <- rbind(analysis.par$norm.path,c(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1))
+        analysis.par$norm.path <- rbind(analysis.par$norm.path,c(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = ''))
     }else{
-        analysis.par$norm.path <- data.frame(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1)
+        analysis.par$norm.path <- data.frame(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = '')
     }
     analysis.par$metadata <- meta.data
 	##

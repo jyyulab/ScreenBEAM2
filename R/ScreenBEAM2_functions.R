@@ -396,6 +396,8 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
       # For the case only 1 sample without replicates
       eset.sel<- eset[exprs(eset[,sel])>=count.cutoff,]
     }
+  }else{
+	eset.sel<- eset
   }
 
   # perform scaled normalization to each sample
@@ -422,7 +424,8 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
     logTransformed <- TRUE
   }
 
-  # Use NetBID2 to compare
+  # Use NetBID2 to compare 
+  print(str(exprs(eset.sel)))
   if(dim(exprs(eset.sel))[2]<=2){
     print("Only 2 samples are comparing, will only calculate the log2FC without bid function.")
     d<-exprs(eset.sel)
@@ -456,8 +459,115 @@ ScreenBEAM.rna.level<-function(input.file, control.samples, case.samples, contro
     de <- NetBID2::getDE.BID.2G(eset=eset.sel,G1=G1,G0=G0,G1_name=case.groupname,G0_name=control.groupname, pooling = pooling,
                                 logTransformed = logTransformed,family = family, method = estimation.method)
   }
+  suffix <- sprintf('%sVS%s.%s_VS_%s',length(G1),length(G0),case.groupname,control.groupname)
+print(str(de))
+  de <- de[,c('ID','logFC','Z-statistics','P.Value','adj.P.Val')] # use z, not t
+  colnames(de) <- c('rnaID',sprintf('log2FC.%s',suffix),sprintf('z.%s',suffix),sprintf('pval.%s',suffix),sprintf('FDR.%s',suffix))
   return(de)
 }
+
+#' GENE level meta-analysis of high-throughput Functional Genomics Screening analysis for pairwise comparison
+#'
+#' \code{ScreenBEAM.Pairwise} user needs to assign the control sample's name and case sample's name vector.
+#' It will do a gene-level/rna-level meta-analysis of screening data. User also need to assign value to \code{rna.size} to the most common number of sh/sgRNAs targeting one gene.
+#' This function will remove bia caused by unbalanced number of sh/sgRNAs targeting the same gene.
+#'
+#' @param analysis.par, list
+#' @param use_index, integer, the line number for the `analysis.par$norm.path` to analyze. 
+#' @param case_group, character, name for the case group
+#' @param control_group, character, name for the control group
+#' @param gene.columnId, integer, the number of the column which store the gene name. By default, 2.
+#' @param data.type, character, can either be "microarray" or "NGS". Default is "microarray".
+#' @param do.normalization, logical, if TRUE, a scaled normalization will be performed for each sample. To quantify this scale, user need to assign a value to \code{total}.
+#' Default is TRUE.
+#' @param total, integer, need to be larger than the colSums of the raw count table. Default is 1e6.
+#' @param filterLowCount, logical, if TRUE, will remove rnas with low count, based on \code{filterBy} and \code{count.cutoff}. Default is TRUE.
+#' @param filterBy, logical, if TRUE, will remove rnas with low count based on "control" samples or "case" samples. Default is "control".
+#' @param count.cutoff, integer, the threshold of removing low count. Default is 4.
+#' @param nitt, integer, the number of MCMC iterations. Default is 15000.
+#' @param burnin, integer, burnin. Default is 5000.
+#' @param thin, integer, thinning interval. Default is 10.
+#' @param rna.size, integer, the most common number of sh/sgRNAs targetting the same gene. Default is 6.
+#' @param sample.rna.time, integer, to remove unbalance number of sh/sgRNAs targetting the same gene. \code{rna.size} of sh/sgRNAs will be sampled, the sampling time.
+#' @param method, character, estimation model. Either "Bayesian" or "MLE". Default is "Bayesian".
+#' @param pooling, character, pooling method. Either "full" or "partial". Default is "partial".
+#' @param ... parameter pass to function ScreenBEAM.gene.level
+#' @return Return analysis.par
+#'
+#' @export
+ScreenBEAM.Pairwise <- function(analysis.par,choose_level = 'gene',use_index,case_group,control_group,
+            gene.columnId = 2, data.type = c("microarray", "NGS"),
+            do.normalization = TRUE, total=1e6,
+            filterLowCount = TRUE,
+            filterBy = "control", count.cutoff = 4, nitt = 15000, burnin = 5000, thin=10,
+            rna.size=6, sample.rna.time=100, method = "Bayesian", pooling="partial", ...){
+    meta.data <- analysis.par$metadata
+    norm_tsv  <- analysis.par$norm.path$tsv_filepath[use_index]
+    case.sample.id <- meta.data$sampleName[which(meta.data$group == case_group)]
+    control.sample.id <- meta.data$sampleName[which(meta.data$group == control_group)]
+    compare.name <- sprintf('%s.vs.%s',case_group,control_group)
+   	analysis.par$norm.path$DR_compare[use_index] <- compare.name
+	if(choose_level == 'gene'){
+       de <- ScreenBEAM.gene.level(norm_tsv, control.samples = control.sample.id,
+                case.samples = case.sample.id,
+                data.type = data.type,
+                control.groupname = control_group,
+                case.groupname = case_group,
+                gene.columnId = gene.columnId, do.normalization = do.normalization,
+                total = total, filterLowCount = filterLowCount,filterBy = filterBy,
+                count.cutoff = count.cutoff,
+                nitt = nitt, burnin = burnin, thin = thin,
+                rna.size = rna.size, sample.rna.time = sample.rna.time,
+                method = method, pooling = pooling, ...)
+    	names(de)[1]<-"geneID"
+        DR.GENE.DF.sel<-dplyr::select(de,
+                      geneID,
+                      starts_with('log2FC.'),
+                      starts_with('z.'),
+                      starts_with('pval.'),
+                      starts_with('FDR.'),
+                      starts_with('B.'),
+                      starts_with('B.sd'),
+                      starts_with('n.sh_sgRNAs.passFilter.'))
+	    fp <- sprintf("%s/%s.%s.%smm.DR.GENE.xlsx",
+					analysis.par$out.dir.output.DR,
+					analysis.par$lib.name,
+					analysis.par$norm.path$DR_compare[use_index],
+					analysis.par$norm.path$n.mismatch[use_index]
+				 )
+        DR.GENE.DF.sel$geneID<-as.character(DR.GENE.DF.sel$geneID)
+        write.xlsx(DR.GENE.DF.sel, fp)
+	    analysis.par$norm.path$DR_gene_filepath[use_index] <- fp
+	}else{
+       de <- ScreenBEAM.rna.level(norm_tsv, control.samples = control.sample.id,
+                case.samples = case.sample.id,
+                control.groupname = control_group,
+                case.groupname = case_group,
+                gene.columnId = gene.columnId, do.log2=TRUE, do.normalization = do.normalization,
+                total = total, filterLowCount = filterLowCount,filterBy = filterBy,
+                count.cutoff = count.cutoff,family=gaussian,
+                pooling = pooling, ...)
+		DR.RNA.DF.sel<-dplyr::select(de,
+                      rnaID,
+                      dplyr::starts_with('log2FC'),
+                      starts_with('z.'),
+                      starts_with('pval.'),
+                      starts_with('FDR.'),
+					  )
+		print(str(DR.RNA.DF.sel))
+	    fp <- sprintf("%s/%s.%s.%smm.DR.RNA.xlsx",
+					analysis.par$out.dir.output.DR,
+					analysis.par$lib.name,
+					analysis.par$norm.path$DR_compare[use_index],
+					analysis.par$norm.path$n.mismatch[use_index]
+				 )
+		print(fp)
+        write.xlsx(DR.RNA.DF.sel,fp)
+	    analysis.par$norm.path$DR_rna_filepath[use_index] <- fp
+	}
+    return(analysis.par)
+}
+
 
 #' GENE level meta-analysis of high-throughput Functional Genomics Screening analysis
 #'
@@ -501,6 +611,7 @@ ScreenBEAM.gene.level<-function(input.file, control.samples, case.samples, contr
                       ...)
   return(DR)
 }
+
 #' Create an HTML report to perform quality control of library, mapping status
 #'
 #' \code{ScreenBEAM.mapping.QC} takes the master \code{analysis.par} list, which contains all the key data through ScreenBEAM meta-analysis.
