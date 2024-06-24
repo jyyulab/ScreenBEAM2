@@ -438,14 +438,14 @@ getCountByMismatch<-function(count.dist,n.mismatch,normalize=TRUE,normalize.tota
 ScreenBEAM.createEset <- function(analysis.par, normalize.total = 1e6, n.mismatch = 9){
     ##
     meta.data <- analysis.par$metadata
-    mapping<-analysis.par$raw.summary
+    mapping <- analysis.par$raw.summary
     #calculate mapping rate and sequencing coverages
     mapping<-mutate(mapping,mappingRate=n.matched/total,coverage.seq=round(n.matched/nrow(analysis.par$raw.count.table)))
     head(mapping)
     ##
     rownames(meta.data) <- meta.data$sampleLabel
     rownames(mapping) <- mapping$sample
-    meta.data <- cbind(meta.data, mapping[mapping$sample,,drop=F])
+    meta.data <- cbind(meta.data[,1:6], mapping[mapping$sample,,drop=F])
     ##
     unlink(file.path(analysis.par$out.dir.output.mapping,'mapping.summary.xlsx'))
     write.xlsx(meta.data,file=file.path(analysis.par$out.dir.output.mapping,'mapping.summary.xlsx'))
@@ -456,22 +456,27 @@ ScreenBEAM.createEset <- function(analysis.par, normalize.total = 1e6, n.mismatc
     meta.data$sampleName <- meta.data$sample
     feature.data <- analysis.par$lib
     m <- list(samples = meta.data, features = feature.data, count.dist = count.dist)
-    fp <- saveCountEset(m,
+    fp_res <- saveCountEset(m,
         save.path=analysis.par$out.dir.output.mapping,
         total = normalize.total, n.mismatch = n.mismatch)
+	fp <- fp_res$filepath
+    norm_eset <- fp_res$normEset
 	fp1 <- paste0(analysis.par$out.dir.output.DR,sprintf("%smm_normalized.tsv",n.mismatch))
     if('norm.path' %in% names(analysis.par)){
-        analysis.par$norm.path <- rbind(analysis.par$norm.path,c(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = ''))
+        analysis.par$norm.path <- rbind(analysis.par$norm.path,c(normalize.total=normalize.total, n.mismatch = n.mismatch, 
+		RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = ''))
     }else{
-        analysis.par$norm.path <- data.frame(normalize.total=normalize.total, n.mismatch = n.mismatch, RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = '')
+        analysis.par$norm.path <- data.frame(normalize.total=normalize.total, n.mismatch = n.mismatch, 
+		RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = '')
     }
+	analysis.par$norm.path <- unique(analysis.par$norm.path) # 
     analysis.par$metadata <- meta.data
 	##
-	first.2.column<-data.frame(RNAid=analysis.par$lib$id, geneid=analysis.par$lib$gene)
-	count.column<-as.data.frame(exprs(count.Nmm.normalized.eset))
-	count.column$RNAid<-rownames(count.column)
-	final.table<-merge(first.2.column, count.column, by="RNAid")
-	colnames(final.table)<-c("rnaID","geneID", paste(meta$group,meta$replicate, sep = "_"))
+	first.2.column <- data.frame(RNAid=analysis.par$lib$id, geneid=analysis.par$lib$gene)
+	count.column <- as.data.frame(exprs(norm_eset)) # 20240624
+	count.column$RNAid <- rownames(count.column)
+	final.table <- merge(first.2.column, count.column, by="RNAid")
+	colnames(final.table) <- c("rnaID","geneID", paste(meta.data$group,meta.data$replicate, sep = "_"))
 	write.table(final.table, file = fp1, quote = F, row.names = F, sep='\t')
 	##
     return(analysis.par)
@@ -505,10 +510,10 @@ saveCountEset<-function(m,save.path,total=1e6, n.mismatch=2){
 
   norm.name<-paste0(prefix,".normalized.eset")
   cat(paste(norm.name," is saved...\n"))
-  count.Nmm.normalized.eset<-generateEset(m,n.mismatch=n.mismatch,normalize=TRUE,normalize.total=total)
+  count.Nmm.normalized.eset <- generateEset(m,n.mismatch=n.mismatch,normalize=TRUE,normalize.total=total)
   filepath <- file.path(save.path,paste(norm.name,".",total/1e6,'M.eset',sep=''))
-  save(count.Nmm.normalized.eset,file=filepath)
-  return(filepath)
+  saveRDS(count.Nmm.normalized.eset,file=filepath)
+  return(list(filepath = filepath, normEset = count.Nmm.normalized.eset))
 }
 
 generateEset.ScreenBEAM<-function(input.file,control.samples,case.samples,control.groupname='control',case.groupname='treatment',gene.columnId=2){

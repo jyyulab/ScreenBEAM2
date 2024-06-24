@@ -536,6 +536,7 @@ ScreenBEAM.Pairwise <- function(analysis.par,choose_level = 'gene',use_index,cas
 					analysis.par$norm.path$n.mismatch[use_index]
 				 )
         DR.GENE.DF.sel$geneID<-as.character(DR.GENE.DF.sel$geneID)
+        DR.GENE.DF.sel <- DR.GENE.DF.sel[order(DR.GENE.DF.sel[,4]),,drop=TRUE]
         write.xlsx(DR.GENE.DF.sel, fp)
 	    analysis.par$norm.path$DR_gene_filepath[use_index] <- fp
 	}else{
@@ -562,6 +563,7 @@ ScreenBEAM.Pairwise <- function(analysis.par,choose_level = 'gene',use_index,cas
 					analysis.par$norm.path$n.mismatch[use_index]
 				 )
 		print(fp)
+		DR.RNA.DF.sel <- DR.RNA.DF.sel[order(DR.RNA.DF.sel[,4]),,drop=FALSE]
         write.xlsx(DR.RNA.DF.sel,fp)
 	    analysis.par$norm.path$DR_rna_filepath[use_index] <- fp
 	}
