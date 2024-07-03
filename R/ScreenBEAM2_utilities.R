@@ -1,6 +1,6 @@
 ###############################################################################
-# Author: Jiyang Yu, Xinge Wang, Chenxi Qian
-# 2020.4.27
+# Author: Jiyang Yu, Xinge Wang, Chenxi Qian, Xinran Dong
+# 2020.4.27, 2024.7.3
 # Utility functions
 ###############################################################################
 
@@ -307,10 +307,10 @@ generateEset<-function(m,n.mismatch=NULL,normalize=TRUE,normalize.total=1e6){
     stop('feature names are different between the lib and profile!\n')
 
   profiles$shId<-NULL
-  tmp<-profiles[rownames(lib),]
+  tmp<-profiles[rownames(lib),group$sampleLabel]
   tmp<-as.matrix(tmp) # deal with special case when ncol=1
   rownames(tmp)<-rownames(lib)
-  colnames(tmp)<-colnames(profiles)
+  colnames(tmp)<-group$sampleLabel
 
   eset<-new("ExpressionSet",phenoData = new("AnnotatedDataFrame",group),
             featureData=new("AnnotatedDataFrame",lib),annotation='',
@@ -405,7 +405,7 @@ normalize.scale<-function(d,total=NULL,pseudoCount=1){
 getCountByMismatch<-function(count.dist,n.mismatch,normalize=TRUE,normalize.total=1e6,annotation=NULL,undertermined.col=NULL,...){
 
   col.sel<-paste('X',0:n.mismatch,sep='')
-  sel.df<-apply(count.dist[,col.sel],2, as.numeric)
+  sel.df<-apply(count.dist[,col.sel,drop=F],2, as.numeric)
   count.dist$total<-apply(sel.df,1,sum)
   dnew<-tidyr::spread(count.dist[,c(1:2,ncol(count.dist))],key='sampleName',value='total')
   dnew<-data.frame(dnew[,-1],row.names=dnew[,1])
@@ -445,7 +445,7 @@ ScreenBEAM.createEset <- function(analysis.par, normalize.total = 1e6, n.mismatc
     ##
     rownames(meta.data) <- meta.data$sampleLabel
     rownames(mapping) <- mapping$sample
-    meta.data <- cbind(meta.data[,1:6], mapping[mapping$sample,,drop=F])
+    meta.data <- cbind(meta.data[,1:6], mapping[meta.data$sampleLabel,,drop=F])
     ##
     unlink(file.path(analysis.par$out.dir.output.mapping,'mapping.summary.xlsx'))
     write.xlsx(meta.data,file=file.path(analysis.par$out.dir.output.mapping,'mapping.summary.xlsx'))
@@ -460,24 +460,35 @@ ScreenBEAM.createEset <- function(analysis.par, normalize.total = 1e6, n.mismatc
         save.path=analysis.par$out.dir.output.mapping,
         total = normalize.total, n.mismatch = n.mismatch)
 	fp <- fp_res$filepath
+	fp_raw <- fp_res$raw_filepath
     norm_eset <- fp_res$normEset
+    raw_eset <- fp_res$rawEset
 	fp1 <- paste0(analysis.par$out.dir.output.DR,sprintf("%smm_normalized.tsv",n.mismatch))
+	fp1_raw <- paste0(analysis.par$out.dir.output.DR,sprintf("%smm_raw.tsv",n.mismatch))
+	#
     if('norm.path' %in% names(analysis.par)){
         analysis.par$norm.path <- rbind(analysis.par$norm.path,c(normalize.total=normalize.total, n.mismatch = n.mismatch, 
-		RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = ''))
+		RData_filepath = fp, rawRData_filepath = fp_raw, tsv_filepath = fp1, rawtsv_filepath = fp1_raw, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = ''))
     }else{
         analysis.par$norm.path <- data.frame(normalize.total=normalize.total, n.mismatch = n.mismatch, 
-		RData_filepath = fp, tsv_filepath = fp1, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = '')
+		RData_filepath = fp, rawRData_filepath = fp_raw, tsv_filepath = fp1, rawtsv_filepath = fp1_raw, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = '')
     }
 	analysis.par$norm.path <- unique(analysis.par$norm.path) # 
     analysis.par$metadata <- meta.data
-	##
+	## output tsv path
 	first.2.column <- data.frame(RNAid=analysis.par$lib$id, geneid=analysis.par$lib$gene)
 	count.column <- as.data.frame(exprs(norm_eset)) # 20240624
 	count.column$RNAid <- rownames(count.column)
 	final.table <- merge(first.2.column, count.column, by="RNAid")
 	colnames(final.table) <- c("rnaID","geneID", paste(meta.data$group,meta.data$replicate, sep = "_"))
 	write.table(final.table, file = fp1, quote = F, row.names = F, sep='\t')
+	##
+	first.2.column <- data.frame(RNAid=analysis.par$lib$id, geneid=analysis.par$lib$gene)
+	count.column <- as.data.frame(exprs(raw_eset))
+	count.column$RNAid <- rownames(count.column)
+	final.table <- merge(first.2.column, count.column, by="RNAid")
+	colnames(final.table) <- c("rnaID","geneID", paste(meta.data$group,meta.data$replicate, sep = "_"))
+	write.table(final.table, file = fp1_raw, quote = F, row.names = F, sep='\t')
 	##
     return(analysis.par)
 }
@@ -496,24 +507,24 @@ saveCountEset<-function(m,save.path,total=1e6, n.mismatch=2){
 
   cat('count.maxmm.raw.eset is saved...\n')
   count.maxmm.raw.eset<-generateEset(m,n.mismatch=NULL,normalize=FALSE,normalize.total=total)
-  save(count.maxmm.raw.eset,file=file.path(save.path,'count.maxmm.raw.eset'))
+  saveRDS(count.maxmm.raw.eset,file=file.path(save.path,'count.maxmm.raw.eset'))
 
   cat('count.maxmm.normalized.eset is saved...\n')
   count.maxmm.normalized.eset<-generateEset(m,n.mismatch=NULL,normalize=TRUE,normalize.total=total)
-  save(count.maxmm.normalized.eset,file=file.path(save.path,paste('count.maxmm.normalized.',total/1e6,'M.eset',sep='')))
+  saveRDS(count.maxmm.normalized.eset,file=file.path(save.path,paste('count.maxmm.normalized.',total/1e6,'M.eset',sep='')))
 
   prefix<-paste0("count.",n.mismatch,"mm")
   raw.name<-paste0(prefix,".raw.eset")
   cat(paste(raw.name, "is saved...\n"))
   count.Nmm.raw.eset<-generateEset(m,n.mismatch=n.mismatch,normalize=FALSE,normalize.total=total)
-  save(count.Nmm.raw.eset,file=file.path(save.path,raw.name))
+  saveRDS(count.Nmm.raw.eset,file=file.path(save.path,raw.name))
 
   norm.name<-paste0(prefix,".normalized.eset")
   cat(paste(norm.name," is saved...\n"))
   count.Nmm.normalized.eset <- generateEset(m,n.mismatch=n.mismatch,normalize=TRUE,normalize.total=total)
   filepath <- file.path(save.path,paste(norm.name,".",total/1e6,'M.eset',sep=''))
   saveRDS(count.Nmm.normalized.eset,file=filepath)
-  return(list(filepath = filepath, normEset = count.Nmm.normalized.eset))
+  return(list(filepath = filepath, raw_filepath = file.path(save.path,raw.name), normEset = count.Nmm.normalized.eset, rawEset = count.Nmm.raw.eset))
 }
 
 generateEset.ScreenBEAM<-function(input.file,control.samples,case.samples,control.groupname='control',case.groupname='treatment',gene.columnId=2){

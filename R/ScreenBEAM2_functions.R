@@ -503,6 +503,7 @@ ScreenBEAM.Pairwise <- function(analysis.par,choose_level = 'gene',use_index,cas
             rna.size=6, sample.rna.time=100, method = "Bayesian", pooling="partial", ...){
     meta.data <- analysis.par$metadata
     norm_tsv  <- analysis.par$norm.path$tsv_filepath[use_index]
+    #norm_tsv  <- analysis.par$norm.path$rawtsv_filepath[use_index]
     case.sample.id <- meta.data$sampleName[which(meta.data$group == case_group)]
     control.sample.id <- meta.data$sampleName[which(meta.data$group == control_group)]
     compare.name <- sprintf('%s.vs.%s',case_group,control_group)
@@ -538,6 +539,8 @@ ScreenBEAM.Pairwise <- function(analysis.par,choose_level = 'gene',use_index,cas
         DR.GENE.DF.sel$geneID<-as.character(DR.GENE.DF.sel$geneID)
         DR.GENE.DF.sel <- DR.GENE.DF.sel[order(DR.GENE.DF.sel[,4]),,drop=TRUE]
         write.xlsx(DR.GENE.DF.sel, fp)
+		fp_txt <- gsub('.xlsx','.txt',fp)
+        write.table(DR.GENE.DF.sel, file = fp_txt,row.names=FALSE,col.names=TRUE,sep='\t',quote=FALSE)
 	    analysis.par$norm.path$DR_gene_filepath[use_index] <- fp
 	}else{
        de <- ScreenBEAM.rna.level(norm_tsv, control.samples = control.sample.id,
@@ -565,6 +568,8 @@ ScreenBEAM.Pairwise <- function(analysis.par,choose_level = 'gene',use_index,cas
 		print(fp)
 		DR.RNA.DF.sel <- DR.RNA.DF.sel[order(DR.RNA.DF.sel[,4]),,drop=FALSE]
         write.xlsx(DR.RNA.DF.sel,fp)
+		fp_txt <- gsub('.xlsx','.txt',fp)
+        write.table(DR.RNA.DF.sel, file = fp_txt,row.names=FALSE,col.names=TRUE,sep='\t',quote=FALSE)
 	    analysis.par$norm.path$DR_rna_filepath[use_index] <- fp
 	}
     return(analysis.par)
