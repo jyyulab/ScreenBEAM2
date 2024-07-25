@@ -39,8 +39,10 @@
 #' @param project_main_dir character, name or absolute path of the main working directory.
 #' @param lib_name character, name of the sh/sgRNA library. Each main working directory can contain multiple library sub-project folder.
 #' @param DATE logical, if TRUE, current date information will be added to the sub-project folder name. Default is TRUE.
-#' @param library_file character, path for the library file. 
-#' @param metadata_file character, path for the metadata file. (sampleID,group,replicate,sampleLabel,fastqFile)
+#' @param library_file character, path for the library file. Required when startFromFastq = TRUE. 
+#' @param metadata_file character, path for the metadata csv file. (sampleID,group,replicate,sampleLabel,fastqFile)
+#' @param count_file character, path for the count tab file. (rnaID,geneID,Sample1,Sample2...). Required when startFromFastq = FALSE; 
+#' @param startFromFastq, logical, if TRUE, the project start from Fastq files.
 #'
 #' @details This function needs users to define the main working directory and the library’s name. It creates
 #' a main working directory with a subdirectory of the project(each library is a project). It also automatically creates 4
@@ -56,11 +58,13 @@
 #'
 #' QC/ is used to store quality control analysis of the mapping result. Including library check and mapping statistics.
 #' DR/ is used to store the Bayesian hierarchical meta analysis result.
+#' 
+#' If startFromFastq = FALSE, library_file is not required. Only metadata/, output/QC/ output/DR/ are created. 
 #'
 #' @return Return a list object, containing all the paths of the created folder.
 #' @export
 ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRUE,
-							library_file = NULL, metadata_file = NULL){
+							library_file = NULL, metadata_file = NULL, count_file = NULL, startFromFastq = TRUE){
   if(exists('analysis.par')==TRUE){message('analysis.par is occupied in the current session,please manually run: rm(analysis.par) and re-try, otherwise will not change !');
     return(analysis.par)}
   if(is.null(project_main_dir)==TRUE){message('project_main_dir required, please input and re-try!');return(FALSE)}
@@ -74,21 +78,25 @@ ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRU
   if (!dir.exists(analysis.par$out.dir)) {
     dir.create(analysis.par$out.dir, recursive = TRUE)
   }
-  analysis.par$out.dir.fastq <- paste0(analysis.par$out.dir, '/fastq/')
-  if (!dir.exists(analysis.par$out.dir.fastq)) {
-    dir.create(analysis.par$out.dir.fastq, recursive = TRUE) ## directory for fastq reads
+  if(startFromFastq == TRUE){
+  	analysis.par$out.dir.fastq <- paste0(analysis.par$out.dir, '/fastq/')
+	  if (!dir.exists(analysis.par$out.dir.fastq)) {
+    	dir.create(analysis.par$out.dir.fastq, recursive = TRUE) ## directory for fastq reads
+ 	 }
+	analysis.par$out.dir.library <- paste0(analysis.par$out.dir, '/library/')
+	  if (!dir.exists(analysis.par$out.dir.library)) {
+    	dir.create(analysis.par$out.dir.library, recursive = TRUE) ## directory for shRNA or sgRNA library files
+  	}
   }
-  analysis.par$out.dir.library <- paste0(analysis.par$out.dir, '/library/')
-  if (!dir.exists(analysis.par$out.dir.library)) {
-    dir.create(analysis.par$out.dir.library, recursive = TRUE) ## directory for shRNA or sgRNA library files
-  }
-  if(is.null(library_file) == FALSE & file.exists(library_file) == TRUE){
-    out_library_file <- sprintf('%s/library.csv',analysis.par$out.dir.library) ### sherry: copy file
-    file.copy(library_file, out_library_file, overwrite = TRUE)
-    message(sprintf('Check %s for library file',out_library_file))
-    library_dat <- read.csv(out_library_file)
-    library_out <- apply(library_dat,1,function(x)sprintf('>%s\n%s',x[1],x[2]))
-    write.table(library_out,file = sprintf('%s/library.fa',analysis.par$out.dir.library),row.names=F,col.names=F,quote=F)
+  if(is.null(library_file) == FALSE){
+    if(file.exists(library_file) == TRUE){
+     out_library_file <- sprintf('%s/library.csv',analysis.par$out.dir.library) ### sherry: copy file
+     file.copy(library_file, out_library_file, overwrite = TRUE)
+     message(sprintf('Check %s for library file',out_library_file))
+     library_dat <- read.csv(out_library_file)
+     library_out <- apply(library_dat,1,function(x)sprintf('>%s\n%s',x[1],x[2]))
+     write.table(library_out,file = sprintf('%s/library.fa',analysis.par$out.dir.library),row.names=F,col.names=F,quote=F)
+    }
   }
   analysis.par$out.dir.metadata <- paste0(analysis.par$out.dir, '/metadata/')
   if (!dir.exists(analysis.par$out.dir.metadata)) {
@@ -100,21 +108,23 @@ ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRU
     message(sprintf('Check %s for metadata file',out_metadata_file))
     metadata_dat <- read.csv(out_metadata_file) #sampleID,group,replicate,sampleLabel,fastqFile 
   	### sherry: cp file 
-    metadata_dat$current_fastqFile <- c()
-    for(i in 1:nrow(metadata_dat)){
-		old_file <- metadata_dat[i,'fastqFile']
-		if(min(table(metadata_dat$sampleLabel)) == 1){
-			new_file <- sprintf('%s.fastq',metadata_dat[i,'sampleLabel'])
-			new_file <- sprintf('%s/%s',analysis.par$out.dir.fastq,new_file)
-			if(grepl('gz$',old_file)){
-				R.utils::gunzip(old_file,new_file)
+    if(startFromFastq == TRUE){
+	    metadata_dat$current_fastqFile <- c()
+    	for(i in 1:nrow(metadata_dat)){
+			old_file <- metadata_dat[i,'fastqFile']
+			if(min(table(metadata_dat$sampleLabel)) == 1){
+				new_file <- sprintf('%s.fastq',metadata_dat[i,'sampleLabel'])
+				new_file <- sprintf('%s/%s',analysis.par$out.dir.fastq,new_file)
+				if(grepl('gz$',old_file)){
+					R.utils::gunzip(old_file,new_file)
+				}else{
+					file.copy(old_file,new_file)	
+				}
 			}else{
-				file.copy(old_file,new_file)	
+				stop('sampleLabel not unique, please modify and re-run!')
 			}
-		}else{
-			stop('sampleLabel not unique, please modify and re-run!')
-		}
-		metadata_dat$current_fastqFile[i] <- new_file
+			metadata_dat$current_fastqFile[i] <- new_file
+    	}
     }
     analysis.par$metadata <- metadata_dat
   }
@@ -122,30 +132,42 @@ ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRU
   if (!dir.exists(analysis.par$out.dir.output)) {
     dir.create(analysis.par$out.dir.output, recursive = TRUE) ## directory for all outputfiles
   }
-  analysis.par$out.dir.output.mapping <- paste0(analysis.par$out.dir.output, '/mapping/')
-  if (!dir.exists(analysis.par$out.dir.output.mapping)) {
-    dir.create(analysis.par$out.dir.output.mapping, recursive = TRUE) ## directory for all outputfiles
-  }
-  analysis.par$out.dir.output.mapping.step1 <- paste0(analysis.par$out.dir.output.mapping, '/Step1_unique_fasta/')
-  if (!dir.exists(analysis.par$out.dir.output.mapping.step1)) {
-    dir.create(analysis.par$out.dir.output.mapping.step1, recursive = TRUE) ## directory for all outputfiles
-  }
-  analysis.par$out.dir.output.mapping.step2 <- paste0(analysis.par$out.dir.output.mapping, '/Step2_blat/')
-  if (!dir.exists(analysis.par$out.dir.output.mapping.step2)) {
-    dir.create(analysis.par$out.dir.output.mapping.step2, recursive = TRUE) ## directory for all outputfiles
-  }
-  analysis.par$out.dir.output.mapping.step3 <- paste0(analysis.par$out.dir.output.mapping, '/Step3_raw_count/')
-  if (!dir.exists(analysis.par$out.dir.output.mapping.step3)) {
-    dir.create(analysis.par$out.dir.output.mapping.step3, recursive = TRUE) ## directory for all outputfiles
+  if(startFromFastq == TRUE){
+  	analysis.par$out.dir.output.mapping <- paste0(analysis.par$out.dir.output, '/mapping/')
+	  if (!dir.exists(analysis.par$out.dir.output.mapping)) {
+    	dir.create(analysis.par$out.dir.output.mapping, recursive = TRUE) ## directory for all outputfiles
+ 	  }
+	  analysis.par$out.dir.output.mapping.step1 <- paste0(analysis.par$out.dir.output.mapping, '/Step1_unique_fasta/')
+	  if (!dir.exists(analysis.par$out.dir.output.mapping.step1)) {
+    	dir.create(analysis.par$out.dir.output.mapping.step1, recursive = TRUE) ## directory for all outputfiles
+  	   }
+  	  analysis.par$out.dir.output.mapping.step2 <- paste0(analysis.par$out.dir.output.mapping, '/Step2_blat/')
+ 	  if (!dir.exists(analysis.par$out.dir.output.mapping.step2)) {
+   	    dir.create(analysis.par$out.dir.output.mapping.step2, recursive = TRUE) ## directory for all outputfiles
+      }
+	  analysis.par$out.dir.output.mapping.step3 <- paste0(analysis.par$out.dir.output.mapping, '/Step3_raw_count/')
+  	  if (!dir.exists(analysis.par$out.dir.output.mapping.step3)) {
+    	dir.create(analysis.par$out.dir.output.mapping.step3, recursive = TRUE) ## directory for all outputfiles
+  	  }
   }
   analysis.par$out.dir.output.QC <- paste0(analysis.par$out.dir.output, '/QC/')
   if (!dir.exists(analysis.par$out.dir.output.QC)) {
     dir.create(analysis.par$out.dir.output.QC, recursive = TRUE) ## directory for all outputfiles
   }
-
   analysis.par$out.dir.output.DR <- paste0(analysis.par$out.dir.output, '/DR/')
   if (!dir.exists(analysis.par$out.dir.output.DR)) {
     dir.create(analysis.par$out.dir.output.DR, recursive = TRUE) ## directory for all outputfiles
+  }
+  if(startFromFastq == FALSE){
+	if(is.null(count_file) == FALSE){
+     t1 <- read.delim(count_file)
+	 colnames(t1)[1:2] <- c('rnaID','geneID')
+	 fp <- sprintf('%s/count.tsv',analysis.par$out.dir.output.DR)
+	 write.table(t1,file = fp,quote=FALSE,sep="\t",row.names=FALSE) # 	 
+     analysis.par$norm.path <- data.frame(normalize.total=NA, n.mismatch = NA, 
+		RData_filepath = NA, rawRData_filepath = NA, tsv_filepath = fp, 
+		rawtsv_filepath = NA, DR_compare = '', DR_gene_filepath = '', DR_rna_filepath = '')
+	}
   }
   ## set path to save RData
   analysis.par$RData.path <- sprintf('%s/%s',analysis.par$out.dir,paste0("analysis_par_",analysis.par$lib.name, ".RData"))
@@ -169,7 +191,9 @@ ScreenBEAM.dir.create <- function(project_main_dir=NULL, lib_name=NULL, DATE=TRU
 ScreenBEAM.check.lib<-function(lib.path){
   # Read in library file
   lib<-read.csv(lib.path, colClasses = "character")
-
+  colnames(lib)[1] <- 'id' # 20240708
+  colnames(lib)[2] <- 'seq'
+  colnames(lib)[3] <- 'gene'
   # Check if columns are correct
   check.columns.lib(lib)
   lib[,2]<-as.character(lib[,2])
@@ -504,8 +528,8 @@ ScreenBEAM.Pairwise <- function(analysis.par,choose_level = 'gene',use_index,cas
     meta.data <- analysis.par$metadata
     norm_tsv  <- analysis.par$norm.path$tsv_filepath[use_index]
     #norm_tsv  <- analysis.par$norm.path$rawtsv_filepath[use_index]
-    case.sample.id <- meta.data$sampleName[which(meta.data$group == case_group)]
-    control.sample.id <- meta.data$sampleName[which(meta.data$group == control_group)]
+    case.sample.id <- meta.data$sampleLabel[which(meta.data$group == case_group)]
+    control.sample.id <- meta.data$sampleLabel[which(meta.data$group == control_group)]
     compare.name <- sprintf('%s.vs.%s',case_group,control_group)
    	analysis.par$norm.path$DR_compare[use_index] <- compare.name
 	if(choose_level == 'gene'){
@@ -612,6 +636,7 @@ ScreenBEAM.gene.level<-function(input.file, control.samples, case.samples, contr
   eset <- generateEset.ScreenBEAM(input.file = input.file, control.samples = control.samples,
                                   case.samples = case.samples, control.groupname = control.groupname,
                                   case.groupname = case.groupname, gene.columnId = gene.columnId)
+  print(str(exprs(eset)))
   DR <- DRAgeneLevel2(eset = eset, data.type = data.type, do.normalization = do.normalization,
                       filterLowCount = filterLowCount, filterBy = filterBy, total=total,
                       count.cutoff = count.cutoff, nitt = nitt, burnin = burnin, thin = thin, rna.size = rna.size, sample.rna.time = sample.rna.time, method=method, pooling=pooling,

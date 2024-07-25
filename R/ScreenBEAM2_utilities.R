@@ -480,14 +480,15 @@ ScreenBEAM.createEset <- function(analysis.par, normalize.total = 1e6, n.mismatc
 	count.column <- as.data.frame(exprs(norm_eset)) # 20240624
 	count.column$RNAid <- rownames(count.column)
 	final.table <- merge(first.2.column, count.column, by="RNAid")
-	colnames(final.table) <- c("rnaID","geneID", paste(meta.data$group,meta.data$replicate, sep = "_"))
+	#colnames(final.table) <- c("rnaID","geneID", paste(meta.data$group,meta.data$replicate, sep = "_"))
+	colnames(final.table) <- c("rnaID","geneID", meta.data$sampleLabel) # 20240708
 	write.table(final.table, file = fp1, quote = F, row.names = F, sep='\t')
 	##
 	first.2.column <- data.frame(RNAid=analysis.par$lib$id, geneid=analysis.par$lib$gene)
 	count.column <- as.data.frame(exprs(raw_eset))
 	count.column$RNAid <- rownames(count.column)
 	final.table <- merge(first.2.column, count.column, by="RNAid")
-	colnames(final.table) <- c("rnaID","geneID", paste(meta.data$group,meta.data$replicate, sep = "_"))
+	colnames(final.table) <- c("rnaID","geneID", meta.data$sampleLabel)
 	write.table(final.table, file = fp1_raw, quote = F, row.names = F, sep='\t')
 	##
     return(analysis.par)
@@ -593,7 +594,6 @@ DRAgeneLevel2<-function(eset,data.type=c('microarray','NGS'),do.normalization=FA
         print("Warning!!!Not all ColSum of expression data are larger than total!!! Please reset total. Now only return not normalized data.")
         total<-NULL
       }
-
       exprs(eset)<-as.matrix(normalize.scale(exprs(eset),total=total,pseudoCount = pseudoCount))
     }
 
