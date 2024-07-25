@@ -4,7 +4,15 @@
 \alias{ScreenBEAM.dir.create}
 \title{ScreenBEAM.dir.create}
 \usage{
-ScreenBEAM.dir.create(project_main_dir = NULL, lib_name = NULL, DATE = TRUE)
+ScreenBEAM.dir.create(
+  project_main_dir = NULL,
+  lib_name = NULL,
+  DATE = TRUE,
+  library_file = NULL,
+  metadata_file = NULL,
+  count_file = NULL,
+  startFromFastq = TRUE
+)
 }
 \arguments{
 \item{project_main_dir}{character, name or absolute path of the main working directory.}
@@ -12,6 +20,14 @@ ScreenBEAM.dir.create(project_main_dir = NULL, lib_name = NULL, DATE = TRUE)
 \item{lib_name}{character, name of the sh/sgRNA library. Each main working directory can contain multiple library sub-project folder.}
 
 \item{DATE}{logical, if TRUE, current date information will be added to the sub-project folder name. Default is TRUE.}
+
+\item{library_file}{character, path for the library file. Required when startFromFastq = TRUE.}
+
+\item{metadata_file}{character, path for the metadata csv file. (sampleID,group,replicate,sampleLabel,fastqFile)}
+
+\item{count_file}{character, path for the count tab file. (rnaID,geneID,Sample1,Sample2...). Required when startFromFastq = FALSE;}
+
+\item{startFromFastq, }{logical, if TRUE, the project start from Fastq files.}
 }
 \value{
 Return a list object, containing all the paths of the created folder.
@@ -34,6 +50,7 @@ This function also returns a list object (analysis.par in the demo) with directo
 This list is an essential for ScreenBEAM2 analysis, all the important intermediate data generated later will be wrapped inside.
 
 QC/ is used to store quality control analysis of the mapping result. Including library check and mapping statistics.
-
 DR/ is used to store the Bayesian hierarchical meta analysis result.
+
+If startFromFastq = FALSE, library_file is not required. Only metadata/, output/QC/ output/DR/ are created.
 }
